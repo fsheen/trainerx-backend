@@ -11,22 +11,24 @@ datasource db {
 
 // 用户表
 model User {
-  id        Int      @id @default(autoincrement())
-  openid    String   @unique @comment("微信 openid")
-  unionid   String?  @unique @comment("微信 unionid")
-  phone     String?  @unique @comment("手机号")
-  avatar    String?  @comment("头像 URL")
-  nickname  String?  @comment("昵称")
-  gender    Int      @default(0) @comment("性别：0-未知，1-男，2-女")
-  birthday  DateTime? @comment("生日")
-  height    Int?     @comment("身高 (cm)")
-  weight    Int?     @comment("体重 (kg)")
-  goal      String?  @comment("健身目标")
-  level     Int      @default(1) @comment("等级：1-新手，2-进阶，3-高级")
-  status    Int      @default(1) @comment("状态：0-禁用，1-正常")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
+  id          Int      @id @default(autoincrement())
+  openid      String   @unique @comment("微信 openid")
+  unionid     String?  @unique @comment("微信 unionid")
+  phone       String?  @unique @comment("手机号")
+  avatar      String?  @comment("头像 URL")
+  nickname    String?  @comment("昵称")
+  gender      Int      @default(0) @comment("性别：0-未知，1-男，2-女")
+  birthday    DateTime? @comment("生日")
+  height      Int?     @comment("身高 (cm)")
+  weight      Int?     @comment("体重 (kg)")
+  goal        String?  @comment("健身目标")
+  role        Int      @default(1) @comment("角色：1-健身者，2-教练")
+  isVerified  Boolean  @default(false) @comment("是否认证（教练）")
+  level       Int      @default(1) @comment("等级：1-新手，2-进阶，3-高级")
+  status      Int      @default(1) @comment("状态：0-禁用，1-正常")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
 
   // 关联
   bookings    Booking[]
@@ -192,7 +194,56 @@ model Review {
   @@map("reviews")
 }
 
-// 用户 - 教练关系表
+// 训练计划表（教练创建）
+model TrainingPlan {
+  id          Int      @id @default(autoincrement())
+  coachId     Int      @comment("创建者（教练 ID）")
+  name        String   @comment("计划名称")
+  description String?  @comment("计划描述")
+  goals       String   @comment("训练目标，逗号分隔")
+  difficulty  Int      @default(1) @comment("难度：1-初级，2-中级，3-高级")
+  duration    Int      @comment("预计时长（分钟）")
+  exercises   Json     @comment("训练动作列表")
+  isPublic    Boolean  @default(false) @comment("是否公开")
+  status      Int      @default(1) @comment("状态：0-下架，1-上架")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  // 关联
+  coach       Coach    @relation(fields: [coachId], references: [id])
+
+  @@index([coachId])
+  @@index([status])
+  @@map("training_plans")
+}
+
+// 学员 - 教练关系表（签约关系）
+model StudentCoach {
+  id          Int      @id @default(autoincrement())
+  studentId   Int      @comment("学员 ID")
+  coachId     Int      @comment("教练 ID")
+  courseCount Int      @default(0) @comment("购买课时")
+  usedCount   Int      @default(0) @comment("已用课时")
+  startDate   DateTime @comment("开始日期")
+  endDate     DateTime? @comment("结束日期")
+  status      Int      @default(1) @comment("状态：1-进行中，2-已完成，3-已过期")
+  note        String?  @comment("备注")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  // 关联
+  student     User     @relation("StudentRelation", fields: [studentId], references: [id])
+  coach       Coach    @relation(fields: [coachId], references: [id])
+
+  @@index([studentId])
+  @@index([coachId])
+  @@index([status])
+  @@map("student_coaches")
+}
+
+// 用户 - 教练关系表（关注关系）
 model UserCoach {
   id        Int      @id @default(autoincrement())
   userId    Int      @unique @comment("用户 ID")
