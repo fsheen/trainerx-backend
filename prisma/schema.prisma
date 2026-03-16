@@ -1,0 +1,210 @@
+// Prisma Schema for TrainerX
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// 用户表
+model User {
+  id        Int      @id @default(autoincrement())
+  openid    String   @unique @comment("微信 openid")
+  unionid   String?  @unique @comment("微信 unionid")
+  phone     String?  @unique @comment("手机号")
+  avatar    String?  @comment("头像 URL")
+  nickname  String?  @comment("昵称")
+  gender    Int      @default(0) @comment("性别：0-未知，1-男，2-女")
+  birthday  DateTime? @comment("生日")
+  height    Int?     @comment("身高 (cm)")
+  weight    Int?     @comment("体重 (kg)")
+  goal      String?  @comment("健身目标")
+  level     Int      @default(1) @comment("等级：1-新手，2-进阶，3-高级")
+  status    Int      @default(1) @comment("状态：0-禁用，1-正常")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  // 关联
+  bookings    Booking[]
+  checkins    Checkin[]
+  userCoach   UserCoach? @relation("UserCoachRelation")
+  coachUsers  UserCoach[] @relation("CoachUsersRelation")
+
+  @@index([openid])
+  @@index([phone])
+  @@map("users")
+}
+
+// 教练表
+model Coach {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @unique @comment("关联用户 ID")
+  name        String   @comment("真实姓名")
+  avatar      String?  @comment("头像 URL")
+  gender      Int      @default(0) @comment("性别：0-未知，1-男，2-女")
+  experience  Int      @default(0) @comment("从业年限")
+  specialty   String?  @comment("专长，逗号分隔")
+  description String?  @comment("个人介绍")
+  certificates String? @comment("资质证书，JSON 数组")
+  rating      Decimal  @default(5.0) @comment("评分")
+  totalSessions Int    @default(0) @comment("总课程数")
+  price       Int      @default(0) @comment("课时费（元/小时）")
+  status      Int      @default(1) @comment("状态：0-禁用，1-正常，2-审核中")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  // 关联
+  user        User       @relation(fields: [userId], references: [id])
+  courses     Course[]
+  bookings    Booking[]
+  reviews     Review[]
+  schedules   CoachSchedule[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("coaches")
+}
+
+// 课程表
+model Course {
+  id          Int      @id @default(autoincrement())
+  coachId     Int      @comment("教练 ID")
+  name        String   @comment("课程名称")
+  type        Int      @comment("课程类型：1-私教，2-团课，3-线上")
+  duration    Int      @comment("时长（分钟）")
+  price       Int      @comment("价格（元）")
+  description String?  @comment("课程描述")
+  cover       String?  @comment("封面图 URL")
+  maxStudents Int      @default(1) @comment("最大学员数")
+  status      Int      @default(1) @comment("状态：0-下架，1-上架")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  // 关联
+  coach       Coach    @relation(fields: [coachId], references: [id])
+  bookings    Booking[]
+
+  @@index([coachId])
+  @@index([type])
+  @@index([status])
+  @@map("courses")
+}
+
+// 预约表
+model Booking {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @comment("用户 ID")
+  coachId     Int      @comment("教练 ID")
+  courseId    Int      @comment("课程 ID")
+  startTime   DateTime @comment("开始时间")
+  endTime     DateTime @comment("结束时间")
+  status      Int      @default(0) @comment("状态：0-待确认，1-已确认，2-已完成，3-已取消，4-已爽约")
+  note        String?  @comment("备注")
+  cancelReason String? @comment("取消原因")
+  totalPrice  Int      @comment("总价格")
+  paidAmount  Int      @default(0) @comment("已付金额")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  // 关联
+  user        User     @relation(fields: [userId], references: [id])
+  coach       Coach    @relation(fields: [coachId], references: [id])
+  course      Course   @relation(fields: [courseId], references: [id])
+
+  @@index([userId])
+  @@index([coachId])
+  @@index([status])
+  @@index([startTime])
+  @@map("bookings")
+}
+
+// 打卡表
+model Checkin {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @comment("用户 ID")
+  type        Int      @comment("打卡类型：1-训练，2-饮食，3-体重")
+  content     String   @comment("打卡内容")
+  images      String?  @comment("图片，JSON 数组")
+  duration    Int?     @comment("训练时长（分钟）")
+  calories    Int?     @comment("消耗卡路里")
+  weight      Decimal? @comment("体重（kg）")
+  mood        Int?     @comment("心情：1-5")
+  likes       Int      @default(0) @comment("点赞数")
+  comments    Int      @default(0) @comment("评论数")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  // 关联
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("checkins")
+}
+
+// 教练时间表
+model CoachSchedule {
+  id          Int      @id @default(autoincrement())
+  coachId     Int      @comment("教练 ID")
+  dayOfWeek   Int      @comment("星期几：0-周日，1-周一...6-周六")
+  startTime   String   @comment("开始时间 HH:mm")
+  endTime     String   @comment("结束时间 HH:mm")
+  isAvailable Boolean  @default(true) @comment("是否可用")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // 关联
+  coach       Coach    @relation(fields: [coachId], references: [id])
+
+  @@index([coachId])
+  @@map("coach_schedules")
+}
+
+// 评价表
+model Review {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @comment("用户 ID")
+  coachId     Int      @comment("教练 ID")
+  bookingId   Int?     @comment("预约 ID")
+  rating      Int      @comment("评分：1-5")
+  content     String?  @comment("评价内容")
+  images      String?  @comment("图片，JSON 数组")
+  isAnonymous Boolean  @default(false) @comment("是否匿名")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  // 关联
+  coach       Coach    @relation(fields: [coachId], references: [id])
+
+  @@index([coachId])
+  @@index([userId])
+  @@index([rating])
+  @@map("reviews")
+}
+
+// 用户 - 教练关系表
+model UserCoach {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique @comment("用户 ID")
+  coachId   Int      @comment("教练 ID")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // 关联
+  user      User   @relation("UserCoachRelation", fields: [userId], references: [id])
+  coach     Coach  @relation("CoachUsersRelation", fields: [coachId], references: [id])
+
+  @@index([userId])
+  @@index([coachId])
+  @@map("user_coaches")
+}
