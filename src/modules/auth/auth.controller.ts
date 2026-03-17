@@ -1,58 +1,135 @@
-import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import { 
+  Controller, 
+  Post, 
+  Get, 
+  Put, 
+  Body, 
+  HttpCode, 
+  HttpStatus,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
 class WxLoginDto {
   code: string;
 }
 
-class PhoneLoginDto {
+class UpdateProfileDto {
+  nickname?: string;
+  avatar?: string;
+  gender?: number;
+  birthday?: Date;
+  height?: number;
+  weight?: number;
+  goal?: string;
+}
+
+class BindPhoneDto {
   phone: string;
-  code: string;
 }
 
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
+  /**
+   * 微信登录
+   */
   @Post('wx-login')
   @HttpCode(HttpStatus.OK)
   async wxLogin(@Body() dto: WxLoginDto) {
     const result = await this.authService.wxLogin(dto.code);
-    return result;
+    return {
+      code: 0,
+      message: 'success',
+      data: result,
+    };
   }
 
-  @Post('phone-login')
+  /**
+   * 刷新 Token
+   */
+  @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  async phoneLogin(@Body() dto: PhoneLoginDto) {
-    // TODO: 实现手机号登录
-    return { message: 'Not implemented' };
+  async refreshToken(@Body('refreshToken') refreshToken: string) {
+    const result = await this.authService.refreshToken(refreshToken);
+    return {
+      code: 0,
+      message: 'success',
+      data: result,
+    };
   }
 
-  @Post('send-code')
-  @HttpCode(HttpStatus.OK)
-  async sendVerifyCode(@Body('phone') phone: string) {
-    // TODO: 实现发送验证码
-    return { message: '验证码已发送' };
+  /**
+   * 获取当前用户信息
+   */
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  async getCurrentUser(@Request() req) {
+    const user = await this.authService.getCurrentUser(req.user.userId);
+    return {
+      code: 0,
+      message: 'success',
+      data: user,
+    };
   }
 
+  /**
+   * 更新用户资料
+   */
+  @Put('profile')
+  @UseGuards(JwtAuthGuard)
+  async updateProfile(@Request() req, @Body() dto: UpdateProfileDto) {
+    const user = await this.authService.updateUserProfile(req.user.userId, dto);
+    return {
+      code: 0,
+      message: 'success',
+      data: user,
+    };
+  }
+
+  /**
+   * 绑定手机号
+   */
+  @Post('bind-phone')
+  @UseGuards(JwtAuthGuard)
+  async bindPhone(@Request() req, @Body() dto: BindPhoneDto) {
+    const user = await this.authService.bindPhone(req.user.userId, dto.phone);
+    return {
+      code: 0,
+      message: 'success',
+      data: user,
+    };
+  }
+
+  /**
+   * 验证 Token（健康检查）
+   */
   @Post('verify')
   @HttpCode(HttpStatus.OK)
   async verifyToken(@Body('token') token: string) {
     const payload = await this.authService.validateToken(token);
-    return { valid: true, payload };
+    return {
+      code: 0,
+      message: 'success',
+      data: { valid: true, payload },
+    };
   }
 
-  @Post('refresh')
-  @HttpCode(HttpStatus.OK)
-  async refreshToken(@Body('token') token: string) {
-    const result = await this.authService.refreshToken(token);
-    return result;
-  }
-
+  /**
+   * 登出
+   */
   @Post('logout')
+  @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   async logout() {
-    // TODO: 将 token 加入黑名单
-    return { message: '登出成功' };
+    // TODO: 将 token 加入黑名单（使用 Redis）
+    return {
+      code: 0,
+      message: 'success',
+      data: { message: '登出成功' },
+    };
   }
 }
