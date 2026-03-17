@@ -9,10 +9,13 @@ import {
   UseGuards,
   Request,
 } from '@nestjs/common';
+import { IsString, IsNotEmpty } from 'class-validator';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
 class WxLoginDto {
+  @IsString()
+  @IsNotEmpty()
   code: string;
 }
 
