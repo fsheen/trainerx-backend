@@ -21,16 +21,27 @@ export class AuthService {
     const appId = this.configService.get('WECHAT_APP_ID');
     const appSecret = this.configService.get('WECHAT_APP_SECRET');
 
+    console.log('开始微信登录，appId:', appId);
+    console.log('微信 code:', code);
+
     try {
       // 调用微信接口获取 openid
       const url = `https://api.weixin.qq.com/sns/jscode2session?appid=${appId}&secret=${appSecret}&js_code=${code}&grant_type=authorization_code`;
-      const { data } = await firstValueFrom(this.httpService.get(url));
+      console.log('请求微信 API:', url.replace(appSecret, '***'));
+      
+      const response = await firstValueFrom(this.httpService.get(url));
+      const data = response.data;
+      
+      console.log('微信 API 返回:', data);
 
+      // 检查错误
       if (data.errcode) {
+        console.error('微信 API 错误:', data.errcode, data.errmsg);
         throw new BadRequestException(data.errmsg || '微信登录失败');
       }
 
       const { openid, session_key } = data;
+      console.log('获取到 openid:', openid);
 
       // 查询或创建用户
       const user = await this.findOrCreateUser(openid);

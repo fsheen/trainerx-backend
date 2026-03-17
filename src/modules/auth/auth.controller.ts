@@ -40,6 +40,17 @@ export class AuthController {
   @Post('wx-login')
   @HttpCode(HttpStatus.OK)
   async wxLogin(@Body() dto: WxLoginDto) {
+    console.log('收到登录请求，body:', dto);
+    console.log('code:', dto?.code);
+    
+    if (!dto?.code) {
+      return {
+        code: 400,
+        message: '缺少 code 参数',
+        data: null,
+      };
+    }
+    
     const result = await this.authService.wxLogin(dto.code);
     return {
       code: 0,
