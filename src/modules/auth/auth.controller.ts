@@ -40,18 +40,24 @@ export class AuthController {
   @Post('wx-login')
   @HttpCode(HttpStatus.OK)
   async wxLogin(@Body() dto: WxLoginDto) {
-    console.log('收到登录请求，body:', dto);
-    console.log('code:', dto?.code);
+    console.error('========================================');
+    console.error('收到微信登录请求！');
+    console.error('请求体:', JSON.stringify(dto, null, 2));
+    console.error('code 值:', dto?.code);
+    console.error('========================================');
     
     if (!dto?.code) {
+      console.error('错误：缺少 code 参数');
       return {
         code: 400,
-        message: '缺少 code 参数',
+        message: ['缺少 code 参数'],
         data: null,
       };
     }
     
+    console.error('开始调用 authService.wxLogin...');
     const result = await this.authService.wxLogin(dto.code);
+    console.error('登录成功，返回 token');
     return {
       code: 0,
       message: 'success',
