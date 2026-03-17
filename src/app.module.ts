@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, MiddlewareConsumer, NestModule, RequestMethod } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { PrismaModule } from './database/prisma/prisma.module';
@@ -10,6 +10,7 @@ import { BookingModule } from './modules/booking/booking.module';
 import { CourseModule } from './modules/course/course.module';
 import { CheckinModule } from './modules/checkin/checkin.module';
 import { NotificationModule } from './modules/notification/notification.module';
+import { LoggerMiddleware } from './common/middleware/logger.middleware';
 
 @Module({
   imports: [
@@ -43,4 +44,11 @@ import { NotificationModule } from './modules/notification/notification.module';
     NotificationModule,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // 对所有请求应用日志中间件
+    consumer
+      .apply(LoggerMiddleware)
+      .forRoutes({ path: '*', method: RequestMethod.ALL });
+  }
+}
