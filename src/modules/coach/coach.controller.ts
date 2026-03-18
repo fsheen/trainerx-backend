@@ -182,4 +182,41 @@ export class CoachController {
       data: schedule,
     };
   }
+
+  /**
+   * 获取教练的学员列表（教练专用）
+   */
+  @Get('my/students')
+  @UseGuards(JwtAuthGuard)
+  async getMyStudents(
+    @Request() req,
+    @Query('page', ParseIntPipe) page = 1,
+    @Query('pageSize', ParseIntPipe) pageSize = 20,
+    @Query('status', ParseIntPipe) status?: number,
+  ) {
+    const result = await this.coachService.getMyStudents(req.user.userId, {
+      page,
+      pageSize,
+      status,
+    });
+    return {
+      code: 0,
+      message: 'success',
+      data: result,
+    };
+  }
+
+  /**
+   * 获取教练首页统计数据
+   */
+  @Get('home/stats')
+  @UseGuards(JwtAuthGuard)
+  async getHomeStats(@Request() req) {
+    const stats = await this.coachService.getHomeStats(req.user.userId);
+    return {
+      code: 0,
+      message: 'success',
+      data: stats,
+    };
+  }
 }

@@ -255,4 +255,193 @@ export class CoachService {
       orderBy: { dayOfWeek: 'asc' },
     });
   }
+
+  /**
+   * 获取教练的学员列表
+   */
+  async getMyStudents(coachId: number, options?: {
+    page?: number;
+    pageSize?: number;
+    status?: number;
+  }) {
+    const { page = 1, pageSize = 20, status } = options || {};
+
+    // 获取教练的预约记录，统计学员信息
+    const bookings = await this.prisma.booking.findMany({
+      where: {
+        coachId,
+        ...(status !== undefined && status !== 0 ? { status } : {}),
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            nickname: true,
+            avatar: true,
+            phone: true,
+            gender: true,
+            goal: true,
+          },
+        },
+        course: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // 按用户分组统计
+    const userMap = new Map();
+    bookings.forEach(booking => {
+      const userId = booking.userId;
+      if (!userMap.has(userId)) {
+        userMap.set(userId, {
+          user: booking.user,
+          totalCourses: 0,
+          usedCourses: 0,
+          status: 1, // 默认进行中
+        });
+      }
+      const userData = userMap.get(userId);
+      userData.totalCourses += 1;
+      if (booking.status === 2) { // 已完成
+        userData.usedCourses += 1;
+      }
+      if (booking.status === 3) { // 已取消/过期
+        userData.status = 3;
+      }
+    });
+
+    // 转换为列表
+    const students = Array.from(userMap.values()).map(data => ({
+      ...data.user,
+      totalCourses: data.totalCourses,
+      usedCourses: data.usedCourses,
+      remainingCourses: data.totalCourses - data.usedCourses,
+      status: data.status,
+    }));
+
+    // 分页
+    const total = students.length;
+    const startIndex = (page - 1) * pageSize;
+    const paginatedStudents = students.slice(startIndex, startIndex + pageSize);
+
+    return {
+      list: paginatedStudents,
+      total,
+      page,
+      pageSize,
+    };
+  }
+
+  /**
+   * 获取教练首页统计数据
+   */
+  async getHomeStats(coachId: number) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    // 获取今日预约
+    const todayBookings = await this.prisma.booking.findMany({
+      where: {
+        coachId,
+        startTime: {
+          gte: today,
+          lt: tomorrow,
+        },
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            nickname: true,
+            avatar: true,
+          },
+        },
+        course: true,
+      },
+    });
+
+    // 今日数据
+    const todayStats = {
+      courses: todayBookings.length,
+      income: todayBookings.filter(b => b.status === 2).length * 300, // 假设每节课 300 元
+      newStudents: todayBookings.filter(b => b.status === 0).length,
+    };
+
+    // 今日课程列表
+    const todayCourses = todayBookings.map(booking => ({
+      id: booking.id,
+      studentName: booking.user?.nickname || '学员',
+      studentAvatar: booking.user?.avatar || '',
+      time: new Date(booking.startTime).getHours().toString().padStart(2, '0') + ':' +
+            new Date(booking.startTime).getMinutes().toString().padStart(2, '0'),
+      courseName: booking.course?.name || '私教课',
+      status: booking.status,
+    }));
+
+    // 学员动态（最近的预约和打卡）
+    const recentActivities = await this.prisma.booking.findMany({
+      where: { coachId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            nickname: true,
+            avatar: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+    });
+
+    const studentActivities = recentActivities.map((booking, index) => ({
+      id: index,
+      studentName: booking.user?.nickname || '学员',
+      studentAvatar: booking.user?.avatar || '',
+      action: booking.status === 0 ? '预约了新课程' :
+              booking.status === 1 ? '确认了课程' :
+              booking.status === 2 ? '完成了课程' : '取消了课程',
+      time: this.formatTimeAgo(booking.createdAt),
+    }));
+
+    // 教练信息
+    const coach = await this.prisma.coach.findUnique({
+      where: { id: coachId },
+      include: { user: true },
+    });
+
+    const coachInfo = {
+      name: coach?.user?.nickname || '教练',
+      avatar: coach?.user?.avatar || '',
+      title: coach?.specialty || '健身教练',
+      rating: coach?.rating || 5.0,
+      students: new Set(todayBookings.map(b => b.userId)).size,
+      sessions: todayBookings.length,
+    };
+
+    return {
+      coachInfo,
+      todayStats,
+      todayCourses,
+      studentActivities,
+    };
+  }
+
+  /**
+   * 格式化时间为相对时间
+   */
+  private formatTimeAgo(date: Date): string {
+    const now = new Date();
+    const diff = now.getTime() - new Date(date).getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 60) return `${minutes}分钟前`;
+    if (hours < 24) return `${hours}小时前`;
+    if (days < 7) return `${days}天前`;
+    return new Date(date).toLocaleDateString('zh-CN');
+  }
 }
