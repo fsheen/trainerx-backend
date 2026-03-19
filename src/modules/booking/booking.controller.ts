@@ -50,9 +50,9 @@ export class BookingController {
   @Get('my')
   async getMyBookings(
     @Request() req,
-    @Query('status', ParseIntPipe) status?: number,
-    @Query('page', ParseIntPipe) page = 1,
-    @Query('pageSize', ParseIntPipe) pageSize = 20,
+    @Query('status', new ParseIntPipe({ optional: true })) status?: number,
+    @Query('page', new ParseIntPipe({ optional: true })) page = 1,
+    @Query('pageSize', new ParseIntPipe({ optional: true })) pageSize = 20,
   ) {
     const result = await this.bookingService.getUserBookings(req.user.userId, {
       status,
@@ -137,11 +137,11 @@ export class BookingController {
   @Get('coach/schedule')
   async getCoachSchedule(
     @Request() req,
-    @Query('status', ParseIntPipe) status?: number,
+    @Query('status', new ParseIntPipe({ optional: true })) status?: number,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-    @Query('page', ParseIntPipe) page = 1,
-    @Query('pageSize', ParseIntPipe) pageSize = 20,
+    @Query('page', new ParseIntPipe({ optional: true })) page = 1,
+    @Query('pageSize', new ParseIntPipe({ optional: true })) pageSize = 20,
   ) {
     const result = await this.bookingService.getCoachBookings(req.user.userId, {
       status,
