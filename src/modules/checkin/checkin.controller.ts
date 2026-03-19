@@ -46,9 +46,9 @@ export class CheckinController {
   @Get('my')
   async getMyCheckins(
     @Request() req,
-    @Query('type', ParseIntPipe) type?: number,
-    @Query('page', ParseIntPipe) page = 1,
-    @Query('pageSize', ParseIntPipe) pageSize = 20,
+    @Query('type', new ParseIntPipe({ optional: true })) type?: number,
+    @Query('page', new ParseIntPipe({ optional: true })) page = 1,
+    @Query('pageSize', new ParseIntPipe({ optional: true })) pageSize = 20,
   ) {
     const result = await this.checkinService.getUserCheckins(req.user.userId, {
       type,
