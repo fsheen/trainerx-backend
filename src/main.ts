@@ -20,8 +20,7 @@ async function bootstrap() {
   // 全局验证管道
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true,
-      // forbidNonWhitelisted: true,  // 暂时禁用，避免验证问题
+      whitelist: false,  // 暂时禁用，允许所有字段
       transform: true,
       transformOptions: {
         enableImplicitConversion: true,

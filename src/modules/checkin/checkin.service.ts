@@ -8,29 +8,21 @@ export class CheckinService {
   /**
    * 创建打卡
    */
-  async createCheckin(userId: number, data: {
-    type: number;
-    content: string;
-    images?: string[];
-    duration?: number;
-    calories?: number;
-    weight?: number;
-    mood?: number;
-  }) {
+  async createCheckin(userId: number, data: any) {
+    console.log('Create checkin - userId:', userId, 'data:', data);
+    const checkinData = {
+      userId,
+      type: Number(data.type),
+      content: String(data.content || ''),
+      images: data.images && Array.isArray(data.images) ? JSON.stringify(data.images) : null,
+      duration: data.duration ? Number(data.duration) : null,
+      calories: data.calories ? Number(data.calories) : null,
+      weight: data.weight ? Number(data.weight) : null,
+      mood: data.mood ? Number(data.mood) : null,
+    };
+    console.log('Processed checkin data:', checkinData);
     return this.prisma.checkin.create({
-      data: {
-        userId,
-        type: data.type,
-        content: data.content,
-        images: data.images ? JSON.stringify(data.images) : null,
-        duration: data.duration,
-        calories: data.calories,
-        weight: data.weight,
-        mood: data.mood,
-      },
-      include: {
-        user: true,
-      },
+      data: checkinData,
     });
   }
 

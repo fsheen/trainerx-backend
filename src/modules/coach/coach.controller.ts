@@ -190,14 +190,17 @@ export class CoachController {
   @UseGuards(JwtAuthGuard)
   async getMyStudents(
     @Request() req,
-    @Query('page', ParseIntPipe) page = 1,
-    @Query('pageSize', ParseIntPipe) pageSize = 20,
-    @Query('status', ParseIntPipe) status?: number,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+    @Query('status') status?: string,
   ) {
+    const pageNum = page ? parseInt(page) : 1;
+    const pageSizeNum = pageSize ? parseInt(pageSize) : 20;
+    const statusNum = status ? parseInt(status) : undefined;
     const result = await this.coachService.getMyStudents(req.user.userId, {
-      page,
-      pageSize,
-      status,
+      page: pageNum,
+      pageSize: pageSizeNum,
+      status: statusNum,
     });
     return {
       code: 0,

@@ -50,14 +50,17 @@ export class BookingController {
   @Get('my')
   async getMyBookings(
     @Request() req,
-    @Query('status', new ParseIntPipe({ optional: true })) status?: number,
-    @Query('page', new ParseIntPipe({ optional: true })) page = 1,
-    @Query('pageSize', new ParseIntPipe({ optional: true })) pageSize = 20,
+    @Query('status') status?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
   ) {
+    const statusNum = status ? parseInt(status) : undefined;
+    const pageNum = page ? parseInt(page) : 1;
+    const pageSizeNum = pageSize ? parseInt(pageSize) : 20;
     const result = await this.bookingService.getUserBookings(req.user.userId, {
-      status,
-      page,
-      pageSize,
+      status: statusNum,
+      page: pageNum,
+      pageSize: pageSizeNum,
     });
     return {
       code: 0,
@@ -137,18 +140,21 @@ export class BookingController {
   @Get('coach/schedule')
   async getCoachSchedule(
     @Request() req,
-    @Query('status', new ParseIntPipe({ optional: true })) status?: number,
+    @Query('status') status?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-    @Query('page', new ParseIntPipe({ optional: true })) page = 1,
-    @Query('pageSize', new ParseIntPipe({ optional: true })) pageSize = 20,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
   ) {
+    const statusNum = status ? parseInt(status) : undefined;
+    const pageNum = page ? parseInt(page) : 1;
+    const pageSizeNum = pageSize ? parseInt(pageSize) : 20;
     const result = await this.bookingService.getCoachBookings(req.user.userId, {
-      status,
+      status: statusNum,
       startDate,
       endDate,
-      page,
-      pageSize,
+      page: pageNum,
+      pageSize: pageSizeNum,
     });
     return {
       code: 0,

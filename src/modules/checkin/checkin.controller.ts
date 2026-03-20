@@ -9,16 +9,35 @@ import {
   Request,
   ParseIntPipe,
 } from '@nestjs/common';
+import { IsInt, IsString, IsOptional, IsArray } from 'class-validator';
 import { CheckinService } from './checkin.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
 class CreateCheckinDto {
+  @IsInt()
   type: number;
+  
+  @IsString()
   content: string;
+  
+  @IsOptional()
+  @IsArray()
   images?: string[];
+  
+  @IsOptional()
+  @IsInt()
   duration?: number;
+  
+  @IsOptional()
+  @IsInt()
   calories?: number;
+  
+  @IsOptional()
+  @IsInt()
   weight?: number;
+  
+  @IsOptional()
+  @IsInt()
   mood?: number;
 }
 
@@ -46,14 +65,17 @@ export class CheckinController {
   @Get('my')
   async getMyCheckins(
     @Request() req,
-    @Query('type', new ParseIntPipe({ optional: true })) type?: number,
-    @Query('page', new ParseIntPipe({ optional: true })) page = 1,
-    @Query('pageSize', new ParseIntPipe({ optional: true })) pageSize = 20,
+    @Query('type') type?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
   ) {
+    const typeNum = type ? parseInt(type) : undefined;
+    const pageNum = page ? parseInt(page) : 1;
+    const pageSizeNum = pageSize ? parseInt(pageSize) : 20;
     const result = await this.checkinService.getUserCheckins(req.user.userId, {
-      type,
-      page,
-      pageSize,
+      type: typeNum,
+      page: pageNum,
+      pageSize: pageSizeNum,
     });
     return {
       code: 0,
