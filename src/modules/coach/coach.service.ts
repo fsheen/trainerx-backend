@@ -14,6 +14,7 @@ export class CoachService {
     pageSize?: number;
   }) {
     const { specialty, page = 1, pageSize = 20 } = options || {};
+    console.log('getCoaches called with:', { specialty, page, pageSize });
 
     const where: any = {
       status: 1, // 只显示正常状态的教练
@@ -24,6 +25,7 @@ export class CoachService {
         contains: specialty,
       };
     }
+    console.log('getCoaches where:', JSON.stringify(where));
 
     const [coaches, total] = await Promise.all([
       this.prisma.coach.findMany({
@@ -45,6 +47,7 @@ export class CoachService {
       }),
       this.prisma.coach.count({ where }),
     ]);
+    console.log('getCoaches result:', { total, count: coaches.length });
 
     return {
       list: coaches,
