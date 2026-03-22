@@ -81,11 +81,13 @@ async function main() {
 
   // 3. 创建教练
   console.log('🎓 创建教练资料...');
+  
+  // 教练 1 - 张三
   const coach = await prisma.coach.create({
     data: {
       userId: coachUser.id,
       name: coachUser.nickname,
-      specialty: '减脂塑形',
+      specialty: '减脂，塑形',
       description: '5 年健身教练经验，擅长减脂和塑形训练',
       experience: 5,
       price: 300,
@@ -93,7 +95,110 @@ async function main() {
       status: 1,
     },
   });
-  console.log(`  ✓ 教练：${coach.name} (ID: ${coach.id})\n`);
+  console.log(`  ✓ 教练：${coach.name} (ID: ${coach.id})`);
+
+  // 创建其他教练用户
+  const coachUser2 = await prisma.user.create({
+    data: {
+      nickname: '李教练',
+      phone: '13800138005',
+      avatar: 'https://picsum.photos/seed/coach2/200/200',
+      gender: 2,
+      role: 2,
+      openid: 'test_openid_coach_li',
+      status: 1,
+    },
+  });
+  const coach2 = await prisma.coach.create({
+    data: {
+      userId: coachUser2.id,
+      name: '李教练',
+      specialty: '瑜伽，普拉提',
+      description: '专注身心平衡，帮助学员改善体态，提升柔韧性',
+      experience: 6,
+      price: 280,
+      rating: 4.8,
+      status: 1,
+    },
+  });
+  console.log(`  ✓ 教练：${coach2.name} (ID: ${coach2.id})`);
+
+  const coachUser3 = await prisma.user.create({
+    data: {
+      nickname: '王教练',
+      phone: '13800138006',
+      avatar: 'https://picsum.photos/seed/coach3/200/200',
+      gender: 1,
+      role: 2,
+      openid: 'test_openid_coach_wang',
+      status: 1,
+    },
+  });
+  const coach3 = await prisma.coach.create({
+    data: {
+      userId: coachUser3.id,
+      name: '王教练',
+      specialty: '增肌，力量训练',
+      description: '前职业运动员，擅长力量训练和运动损伤康复',
+      experience: 10,
+      price: 400,
+      rating: 5.0,
+      status: 1,
+    },
+  });
+  console.log(`  ✓ 教练：${coach3.name} (ID: ${coach3.id})`);
+
+  const coachUser4 = await prisma.user.create({
+    data: {
+      nickname: '陈教练',
+      phone: '13800138007',
+      avatar: 'https://picsum.photos/seed/coach4/200/200',
+      gender: 1,
+      role: 2,
+      openid: 'test_openid_coach_chen',
+      status: 1,
+    },
+  });
+  const coach4 = await prisma.coach.create({
+    data: {
+      userId: coachUser4.id,
+      name: '陈教练',
+      specialty: '减脂，HIIT',
+      description: '科学减脂理念，帮助学员健康瘦身的同时保持肌肉',
+      experience: 5,
+      price: 260,
+      rating: 4.7,
+      status: 1,
+    },
+  });
+  console.log(`  ✓ 教练：${coach4.name} (ID: ${coach4.id})`);
+
+  const coachUser5 = await prisma.user.create({
+    data: {
+      nickname: '刘教练',
+      phone: '13800138008',
+      avatar: 'https://picsum.photos/seed/coach5/200/200',
+      gender: 2,
+      role: 2,
+      openid: 'test_openid_coach_liu',
+      status: 1,
+    },
+  });
+  const coach5 = await prisma.coach.create({
+    data: {
+      userId: coachUser5.id,
+      name: '刘教练',
+      specialty: '塑形，产后恢复',
+      description: '专注女性健身，擅长产后恢复和体态矫正',
+      experience: 7,
+      price: 320,
+      rating: 4.9,
+      status: 1,
+    },
+  });
+  console.log(`  ✓ 教练：${coach5.name} (ID: ${coach5.id})`);
+
+  console.log('');
 
   // 4. 创建课程
   console.log('📚 创建课程...');
