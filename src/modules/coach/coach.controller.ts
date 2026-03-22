@@ -47,11 +47,13 @@ export class CoachController {
   @Get()
   async getList(
     @Query('specialty') specialty?: string,
+    @Query('keyword') keyword?: string,
     @Query('page', new ParseIntPipe({ optional: true })) page = 1,
     @Query('pageSize', new ParseIntPipe({ optional: true })) pageSize = 20,
   ) {
     const result = await this.coachService.getCoaches({
       specialty,
+      keyword,
       page,
       pageSize,
     });

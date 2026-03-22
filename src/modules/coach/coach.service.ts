@@ -10,20 +10,43 @@ export class CoachService {
    */
   async getCoaches(options?: {
     specialty?: string;
+    keyword?: string;
     page?: number;
     pageSize?: number;
   }) {
-    const { specialty, page = 1, pageSize = 20 } = options || {};
-    console.log('getCoaches called with:', { specialty, page, pageSize });
+    const { specialty, keyword, page = 1, pageSize = 20 } = options || {};
+    console.log('getCoaches called with:', { specialty, keyword, page, pageSize });
 
     const where: any = {
       status: 1, // 只显示正常状态的教练
     };
 
+    // 专长筛选
     if (specialty) {
       where.specialty = {
         contains: specialty,
       };
+    }
+
+    // 关键词搜索（支持名称、专长、描述）
+    if (keyword && keyword.trim()) {
+      where.OR = [
+        {
+          name: {
+            contains: keyword.trim(),
+          },
+        },
+        {
+          specialty: {
+            contains: keyword.trim(),
+          },
+        },
+        {
+          description: {
+            contains: keyword.trim(),
+          },
+        },
+      ];
     }
     console.log('getCoaches where:', JSON.stringify(where));
 
