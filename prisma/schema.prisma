@@ -1,5 +1,3 @@
-// Prisma Schema for TrainerX
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,28 +8,27 @@ datasource db {
 }
 
 model User {
-  id          Int      @id @default(autoincrement())
-  openid      String   @unique
-  unionid     String?  @unique
-  phone       String?  @unique
-  avatar      String?
-  nickname    String?
-  gender      Int      @default(0)
-  birthday    DateTime?
-  height      Int?
-  weight      Int?
-  goal        String?
-  role        Int      @default(1)
-  isVerified  Boolean  @default(false)
-  level       Int      @default(1)
-  status      Int      @default(1)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  deletedAt   DateTime? @map("deleted_at")
-
-  bookings    Booking[]
-  checkins    Checkin[]
-  coach       Coach?
+  id         Int       @id @default(autoincrement())
+  openid     String    @unique
+  unionid    String?   @unique
+  phone      String?   @unique
+  avatar     String?
+  nickname   String?
+  gender     Int       @default(0)
+  birthday   DateTime?
+  height     Int?
+  weight     Int?
+  goal       String?
+  role       Int       @default(1)
+  isVerified Boolean   @default(false)
+  level      Int       @default(1)
+  status     Int       @default(1)
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
+  bookings   Booking[]
+  checkins   Checkin[]
+  coach      Coach?
 
   @@index([openid])
   @@index([phone])
@@ -39,28 +36,27 @@ model User {
 }
 
 model Coach {
-  id          Int      @id @default(autoincrement())
-  userId      Int      @unique
-  name        String
-  avatar      String?
-  gender      Int      @default(0)
-  experience  Int      @default(0)
-  specialty   String?
-  description String?
-  certificates String?
-  rating      Decimal  @default(5.0)
-  totalSessions Int    @default(0)
-  price       Int      @default(0)
-  status      Int      @default(1)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  deletedAt   DateTime? @map("deleted_at")
-
-  user        User   @relation(fields: [userId], references: [id])
-  courses     Course[]
-  bookings    Booking[]
-  reviews     Review[]
-  schedules   CoachSchedule[]
+  id            Int             @id @default(autoincrement())
+  userId        Int             @unique
+  name          String
+  avatar        String?
+  gender        Int             @default(0)
+  experience    Int             @default(0)
+  specialty     String?
+  description   String?
+  certificates  String?
+  rating        Decimal         @default(5.000000000000000000000000000000)
+  totalSessions Int             @default(0)
+  price         Int             @default(0)
+  status        Int             @default(1)
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+  deletedAt     DateTime?       @map("deleted_at")
+  bookings      Booking[]
+  schedules     CoachSchedule[]
+  user          User            @relation(fields: [userId], references: [id])
+  courses       Course[]
+  reviews       Review[]
   trainingPlans TrainingPlan[]
 
   @@index([userId])
@@ -69,7 +65,7 @@ model Coach {
 }
 
 model Course {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   coachId     Int
   name        String
   type        Int
@@ -77,14 +73,13 @@ model Course {
   price       Int
   description String?
   cover       String?
-  maxStudents Int      @default(1)
-  status      Int      @default(1)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  maxStudents Int       @default(1)
+  status      Int       @default(1)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
   deletedAt   DateTime? @map("deleted_at")
-
-  coach       Coach    @relation(fields: [coachId], references: [id])
   bookings    Booking[]
+  coach       Coach     @relation(fields: [coachId], references: [id])
 
   @@index([coachId])
   @@index([type])
@@ -93,49 +88,48 @@ model Course {
 }
 
 model Booking {
-  id          Int      @id @default(autoincrement())
-  userId      Int
-  coachId     Int
-  courseId    Int
-  startTime   DateTime
-  endTime     DateTime
-  status      Int      @default(0)
-  note        String?
+  id           Int       @id @default(autoincrement())
+  userId       Int
+  coachId      Int
+  courseId     Int
+  startTime    DateTime
+  endTime      DateTime
+  status       Int       @default(0)
+  note         String?
   cancelReason String?
-  totalPrice  Int
-  paidAmount  Int      @default(0)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  deletedAt   DateTime? @map("deleted_at")
-
-  user        User     @relation(fields: [userId], references: [id])
-  coach       Coach    @relation(fields: [coachId], references: [id])
-  course      Course   @relation(fields: [courseId], references: [id])
+  totalPrice   Int
+  paidAmount   Int       @default(0)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+  coach        Coach     @relation(fields: [coachId], references: [id])
+  course       Course    @relation(fields: [courseId], references: [id])
+  user         User      @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([coachId])
   @@index([status])
   @@index([startTime])
+  @@index([courseId], map: "bookings_courseId_fkey")
   @@map("bookings")
 }
 
 model Checkin {
-  id          Int      @id @default(autoincrement())
-  userId      Int
-  type        Int
-  content     String
-  images      String?
-  duration    Int?
-  calories    Int?
-  weight      Decimal?
-  mood        Int?
-  likes       Int      @default(0)
-  comments    Int      @default(0)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  deletedAt   DateTime? @map("deleted_at")
-
-  user        User     @relation(fields: [userId], references: [id])
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  type      Int
+  content   String
+  images    String?
+  duration  Int?
+  calories  Int?
+  weight    Decimal?
+  mood      Int?
+  likes     Int       @default(0)
+  comments  Int       @default(0)
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+  user      User      @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([type])
@@ -152,7 +146,6 @@ model CoachSchedule {
   isAvailable Boolean  @default(true)
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
-
   coach       Coach    @relation(fields: [coachId], references: [id])
 
   @@index([coachId])
@@ -160,19 +153,18 @@ model CoachSchedule {
 }
 
 model Review {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   userId      Int
   coachId     Int
   bookingId   Int?
   rating      Int
   content     String?
   images      String?
-  isAnonymous Boolean  @default(false)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  isAnonymous Boolean   @default(false)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
   deletedAt   DateTime? @map("deleted_at")
-
-  coach       Coach    @relation(fields: [coachId], references: [id])
+  coach       Coach     @relation(fields: [coachId], references: [id])
 
   @@index([coachId])
   @@index([userId])
@@ -181,21 +173,20 @@ model Review {
 }
 
 model TrainingPlan {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   coachId     Int
   name        String
   description String?
   goals       String
-  difficulty  Int      @default(1)
+  difficulty  Int       @default(1)
   duration    Int
   exercises   Json
-  isPublic    Boolean  @default(false)
-  status      Int      @default(1)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  isPublic    Boolean   @default(false)
+  status      Int       @default(1)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
   deletedAt   DateTime? @map("deleted_at")
-
-  coach       Coach    @relation(fields: [coachId], references: [id])
+  coach       Coach     @relation(fields: [coachId], references: [id])
 
   @@index([coachId])
   @@index([status])
@@ -203,17 +194,17 @@ model TrainingPlan {
 }
 
 model StudentCoach {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   studentId   Int
   coachId     Int
-  courseCount Int      @default(0)
-  usedCount   Int      @default(0)
+  courseCount Int       @default(0)
+  usedCount   Int       @default(0)
   startDate   DateTime
   endDate     DateTime?
-  status      Int      @default(1)
+  status      Int       @default(1)
   note        String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
   deletedAt   DateTime? @map("deleted_at")
 
   @@index([studentId])

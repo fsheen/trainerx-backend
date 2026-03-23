@@ -54,9 +54,10 @@ export class BookingController {
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
   ) {
-    const statusNum = status ? parseInt(status) : undefined;
-    const pageNum = page ? parseInt(page) : 1;
-    const pageSizeNum = pageSize ? parseInt(pageSize) : 20;
+    // 处理 status 参数：undefined 或 "undefined" 字符串都表示不筛选
+    const statusNum = status && status !== 'undefined' && !isNaN(parseInt(status)) ? parseInt(status) : undefined;
+    const pageNum = page && !isNaN(parseInt(page)) ? parseInt(page) : 1;
+    const pageSizeNum = pageSize && !isNaN(parseInt(pageSize)) ? parseInt(pageSize) : 20;
     const result = await this.bookingService.getUserBookings(req.user.userId, {
       status: statusNum,
       page: pageNum,
@@ -146,9 +147,10 @@ export class BookingController {
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
   ) {
-    const statusNum = status ? parseInt(status) : undefined;
-    const pageNum = page ? parseInt(page) : 1;
-    const pageSizeNum = pageSize ? parseInt(pageSize) : 20;
+    // 处理 status 参数：undefined 或 "undefined" 字符串都表示不筛选
+    const statusNum = status && status !== 'undefined' && !isNaN(parseInt(status)) ? parseInt(status) : undefined;
+    const pageNum = page && !isNaN(parseInt(page)) ? parseInt(page) : 1;
+    const pageSizeNum = pageSize && !isNaN(parseInt(pageSize)) ? parseInt(pageSize) : 20;
     const result = await this.bookingService.getCoachBookings(req.user.userId, {
       status: statusNum,
       startDate,
