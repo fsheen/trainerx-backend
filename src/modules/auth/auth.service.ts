@@ -94,8 +94,12 @@ export class AuthService {
     const appId = this.configService.get('WECHAT_APP_ID');
     const appSecret = this.configService.get('WECHAT_APP_SECRET');
 
-    console.log('开始微信登录，appId:', appId);
+    console.log('========================================');
+    console.log('开始微信登录');
+    console.log('WECHAT_APP_ID:', appId);
+    console.log('WECHAT_APP_SECRET:', appSecret ? '***' + appSecret.slice(-4) : 'undefined');
     console.log('微信 code:', code);
+    console.log('========================================');
 
     // 开发环境：支持测试 code
     if (code === 'admin' || code === 'test') {
