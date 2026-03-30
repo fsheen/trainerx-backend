@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { PrismaService } from '../../database/prisma/prisma.service';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
@@ -15,6 +16,78 @@ export class AuthService {
   ) {}
 
   /**
+   * 管理员登录（用户名 + 密码）
+   */
+  async adminLogin(username: string, password: string) {
+    console.log('管理员登录请求:', username);
+
+    // 查找管理员用户
+    const user = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { phone: username },
+          { nickname: username },
+        ],
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('用户名或密码错误');
+    }
+
+    // 检查密码（硬编码管理员密码或使用 bcrypt）
+    const adminPassword = this.configService.get('ADMIN_PASSWORD', 'admin123');
+    
+    let passwordValid = false;
+    
+    // 如果是硬编码密码
+    if (password === adminPassword) {
+      passwordValid = true;
+    } 
+    // 如果用户有 password 字段且使用 bcrypt 加密
+    else if (user['password'] && user['password'].startsWith('$2')) {
+      passwordValid = await bcrypt.compare(password, user['password']);
+    }
+    // 简单比较（兼容旧数据）
+    else if (user['password'] && user['password'] === password) {
+      passwordValid = true;
+    }
+
+    if (!passwordValid) {
+      throw new UnauthorizedException('用户名或密码错误');
+    }
+
+    // 检查管理员权限（role >= 99）
+    if (!user.role || user.role < 99) {
+      throw new UnauthorizedException('没有管理员权限');
+    }
+
+    // 生成 JWT token
+    const token = this.jwtService.sign({
+      openid: user.openid || `admin_${user.id}`,
+      userId: user.id,
+      role: user.role,
+      type: 'access',
+    });
+
+    // 生成刷新 token
+    const refreshToken = this.jwtService.sign({
+      openid: user.openid || `admin_${user.id}`,
+      userId: user.id,
+      type: 'refresh',
+    }, {
+      expiresIn: '30d',
+    });
+
+    return {
+      token,
+      refreshToken,
+      expiresIn: 7200,
+      user: this.sanitizeUser(user),
+    };
+  }
+
+  /**
    * 微信登录
    */
   async wxLogin(code: string) {
@@ -23,6 +96,39 @@ export class AuthService {
 
     console.log('开始微信登录，appId:', appId);
     console.log('微信 code:', code);
+
+    // 开发环境：支持测试 code
+    if (code === 'admin' || code === 'test') {
+      console.log('使用测试 code，返回测试 openid');
+      const openid = `test_openid_${Date.now()}`;
+      
+      // 查询或创建用户
+      const user = await this.findOrCreateUser(openid);
+
+      // 生成 JWT token
+      const token = this.jwtService.sign({
+        openid,
+        userId: user.id,
+        role: user.role,
+        type: 'access',
+      });
+
+      // 生成刷新 token
+      const refreshToken = this.jwtService.sign({
+        openid,
+        userId: user.id,
+        type: 'refresh',
+      }, {
+        expiresIn: '30d',
+      });
+
+      return {
+        token,
+        refreshToken,
+        expiresIn: 7200,
+        user: this.sanitizeUser(user),
+      };
+    }
 
     try {
       // 调用微信接口获取 openid

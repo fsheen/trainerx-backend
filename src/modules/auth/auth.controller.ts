@@ -19,6 +19,16 @@ class WxLoginDto {
   code: string;
 }
 
+class AdminLoginDto {
+  @IsString()
+  @IsNotEmpty()
+  username: string;
+  
+  @IsString()
+  @IsNotEmpty()
+  password: string;
+}
+
 class UpdateProfileDto {
   nickname?: string;
   avatar?: string;
@@ -36,6 +46,31 @@ class BindPhoneDto {
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
+
+  /**
+   * 管理员登录
+   */
+  @Post('admin-login')
+  @HttpCode(HttpStatus.OK)
+  async adminLogin(@Body() dto: AdminLoginDto) {
+    console.log('管理员登录请求:', dto.username);
+    
+    try {
+      const result = await this.authService.adminLogin(dto.username, dto.password);
+      return {
+        code: 0,
+        message: 'success',
+        data: result,
+      };
+    } catch (error) {
+      console.error('管理员登录失败:', error.message);
+      return {
+        code: error.status || 400,
+        message: error.message,
+        data: null,
+      };
+    }
+  }
 
   /**
    * 微信登录
