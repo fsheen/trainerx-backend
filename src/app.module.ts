@@ -17,7 +17,9 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
     // 配置模块
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+      envFilePath: process.env.NODE_ENV === 'production' 
+        ? '/root/trainerx-backend/.env' 
+        : '.env',
     }),
 
     // 频率限制
