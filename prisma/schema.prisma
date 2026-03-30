@@ -30,6 +30,7 @@ model User {
   checkins    Checkin[]
   coach       Coach?
   application CoachApplication?
+  reviewedApplications CoachApplication[] @relation("ApplicationReviewer")
 
   @@index([openid])
   @@index([phone])
@@ -262,6 +263,7 @@ model CoachApplication {
   reviewedAt     DateTime?
   submittedAt    DateTime  @default(now())
   user           User      @relation(fields: [userId], references: [id])
+  reviewer       User?     @relation("ApplicationReviewer", fields: [reviewedBy], references: [id])
 
   @@index([userId])
   @@index([status])

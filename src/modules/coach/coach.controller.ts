@@ -12,8 +12,10 @@ import {
 } from '@nestjs/common';
 import { CoachService } from './coach.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { AdminGuard } from '../../common/guards/admin.guard';
 import { ApplyCoachDto } from './dto/apply-coach.dto';
 import { UpdateApplicationDto } from './dto/update-application.dto';
+import { ReviewApplicationDto, ListApplicationsDto } from './dto/review-application.dto';
 
 class UpdateCoachDto {
   name?: string;
@@ -272,6 +274,66 @@ export class CoachController {
       code: 0,
       message: '申请已撤回',
       data: null,
+    };
+  }
+
+  // ==================== 管理员接口 ====================
+
+  /**
+   * 获取所有认证申请列表（管理员）
+   */
+  @Get('admin/applications')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async getApplications(
+    @Request() req,
+    @Query() query: ListApplicationsDto,
+  ) {
+    const result = await this.coachService.getApplications({
+      page: query.page,
+      pageSize: query.pageSize,
+      status: query.status,
+      keyword: query.keyword,
+    });
+    return {
+      code: 0,
+      message: 'success',
+      data: result,
+    };
+  }
+
+  /**
+   * 获取单个申请详情（管理员）
+   */
+  @Get('admin/applications/:id')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async getApplicationDetail(@Param('id', ParseIntPipe) id: number) {
+    const application = await this.coachService.getApplicationDetail(id);
+    return {
+      code: 0,
+      message: 'success',
+      data: application,
+    };
+  }
+
+  /**
+   * 审核教练申请（管理员）
+   */
+  @Post('admin/applications/:id/review')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async reviewApplication(
+    @Request() req,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: ReviewApplicationDto,
+  ) {
+    const result = await this.coachService.reviewApplication(
+      id,
+      req.user.userId,
+      dto,
+    );
+    return {
+      code: 0,
+      message: '审核成功',
+      data: result,
     };
   }
 }

@@ -668,4 +668,197 @@ export class CoachService {
       where: { userId },
     });
   }
+
+  /**
+   * 获取所有认证申请列表（管理员）
+   */
+  async getApplications(options?: {
+    page?: number;
+    pageSize?: number;
+    status?: number;
+    keyword?: string;
+  }) {
+    const { page = 1, pageSize = 20, status, keyword } = options || {};
+
+    const where: any = {};
+
+    // 状态筛选
+    if (status !== undefined) {
+      where.status = status;
+    }
+
+    // 关键词搜索（姓名/手机号）
+    if (keyword && keyword.trim()) {
+      where.OR = [
+        {
+          name: {
+            contains: keyword.trim(),
+          },
+        },
+        {
+          phone: {
+            contains: keyword.trim(),
+          },
+        },
+      ];
+    }
+
+    const [applications, total] = await Promise.all([
+      this.prisma.coachApplication.findMany({
+        where,
+        include: {
+          user: {
+            select: {
+              id: true,
+              openid: true,
+              phone: true,
+              avatar: true,
+              nickname: true,
+            },
+          },
+          reviewer: {
+            select: {
+              id: true,
+              nickname: true,
+            },
+          },
+        },
+        orderBy: { submittedAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      this.prisma.coachApplication.count({ where }),
+    ]);
+
+    return {
+      list: applications,
+      total,
+      page,
+      pageSize,
+    };
+  }
+
+  /**
+   * 获取单个申请详情（管理员）
+   */
+  async getApplicationDetail(applicationId: number) {
+    return this.prisma.coachApplication.findUnique({
+      where: { id: applicationId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            openid: true,
+            phone: true,
+            avatar: true,
+            nickname: true,
+          },
+        },
+        reviewer: {
+          select: {
+            id: true,
+            nickname: true,
+          },
+        },
+      },
+    });
+  }
+
+  /**
+   * 审核教练申请（管理员）
+   */
+  async reviewApplication(
+    applicationId: number,
+    reviewerId: number,
+    data: { status: number; reason?: string },
+  ) {
+    const application = await this.prisma.coachApplication.findUnique({
+      where: { id: applicationId },
+    });
+
+    if (!application) {
+      throw new NotFoundException('未找到申请记录');
+    }
+
+    if (application.status !== 0) {
+      throw new BadRequestException('只有待审核状态的申请才能审核');
+    }
+
+    const { status, reason } = data;
+
+    // 开启事务
+    return this.prisma.$transaction(async (tx) => {
+      // 1. 更新申请状态
+      const updatedApplication = await tx.coachApplication.update({
+        where: { id: applicationId },
+        data: {
+          status,
+          reason,
+          reviewedBy: reviewerId,
+          reviewedAt: new Date(),
+        },
+      });
+
+      // 2. 如果通过，更新 Coach 表
+      if (status === 1) {
+        // 检查是否已存在教练记录
+        const existingCoach = await tx.coach.findUnique({
+          where: { userId: application.userId },
+        });
+
+        if (existingCoach) {
+          // 更新现有教练记录
+          await tx.coach.update({
+            where: { userId: application.userId },
+            data: {
+              verificationStatus: 2, // 已认证
+              verifiedAt: new Date(),
+              name: application.name,
+              gender: application.gender,
+              birthday: application.birthday,
+              phone: application.phone,
+              specialty: application.specialty,
+              experience: application.experience,
+              description: application.description,
+              price: application.price,
+              certificates: application.certificates,
+              workExperience: application.workExperience,
+              achievements: application.achievements,
+            },
+          });
+        } else {
+          // 创建新教练记录
+          await tx.coach.create({
+            data: {
+              userId: application.userId,
+              verificationStatus: 2, // 已认证
+              verifiedAt: new Date(),
+              name: application.name,
+              gender: application.gender,
+              birthday: application.birthday,
+              phone: application.phone,
+              specialty: application.specialty,
+              experience: application.experience,
+              description: application.description,
+              price: application.price,
+              certificates: application.certificates,
+              workExperience: application.workExperience,
+              achievements: application.achievements,
+              status: 1,
+            },
+          });
+        }
+      } else if (status === 2) {
+        // 如果拒绝，更新 Coach 表的认证状态
+        await tx.coach.updateMany({
+          where: { userId: application.userId },
+          data: {
+            verificationStatus: 3, // 已拒绝
+          },
+        });
+      }
+
+      return updatedApplication;
+    });
+  }
 }
