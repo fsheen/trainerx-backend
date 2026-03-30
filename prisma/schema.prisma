@@ -31,6 +31,7 @@ model User {
   coach       Coach?
   application CoachApplication?
   reviewedApplications CoachApplication[] @relation("ApplicationReviewer")
+  notifications Notification[]
 
   @@index([openid])
   @@index([phone])
@@ -268,4 +269,25 @@ model CoachApplication {
   @@index([userId])
   @@index([status])
   @@map("coach_applications")
+}
+
+model Notification {
+  id          Int      @id @default(autoincrement())
+  userId      Int      // 接收用户 ID
+  title       String   // 消息标题
+  content     String   // 消息内容
+  type        String   // 消息类型：system, booking, checkin, certification
+  templateId  String?  // 微信模板 ID
+  data        Json?    // 模板数据
+  isRead      Boolean  @default(false)
+  readAt      DateTime?
+  createdAt   DateTime @default(now())
+  
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([type])
+  @@index([createdAt])
+  @@map("notifications")
 }
