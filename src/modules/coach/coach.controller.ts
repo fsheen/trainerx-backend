@@ -12,14 +12,8 @@ import {
 } from '@nestjs/common';
 import { CoachService } from './coach.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-
-class ApplyCoachDto {
-  name: string;
-  specialty?: string;
-  description?: string;
-  experience?: number;
-  certificates?: string[];
-}
+import { ApplyCoachDto } from './dto/apply-coach.dto';
+import { UpdateApplicationDto } from './dto/update-application.dto';
 
 class UpdateCoachDto {
   name?: string;
@@ -78,11 +72,11 @@ export class CoachController {
   }
 
   /**
-   * 申请成为教练
+   * 申请成为教练（旧接口，保留向后兼容）
    */
-  @Post('apply')
+  @Post('apply-old')
   @UseGuards(JwtAuthGuard)
-  async apply(@Request() req, @Body() dto: ApplyCoachDto) {
+  async apply(@Request() req, @Body() dto: any) {
     const coach = await this.coachService.applyToBeCoach(req.user.userId, dto);
     return {
       code: 0,
@@ -222,6 +216,62 @@ export class CoachController {
       code: 0,
       message: 'success',
       data: stats,
+    };
+  }
+
+  /**
+   * 提交教练认证申请
+   */
+  @Post('application/submit')
+  @UseGuards(JwtAuthGuard)
+  async submitApplication(@Request() req, @Body() dto: ApplyCoachDto) {
+    const result = await this.coachService.submitApplication(req.user.userId, dto);
+    return {
+      code: 0,
+      message: '申请提交成功',
+      data: result,
+    };
+  }
+
+  /**
+   * 查询认证申请状态
+   */
+  @Get('application/status')
+  @UseGuards(JwtAuthGuard)
+  async getApplicationStatus(@Request() req) {
+    const result = await this.coachService.getApplicationStatus(req.user.userId);
+    return {
+      code: 0,
+      message: 'success',
+      data: result,
+    };
+  }
+
+  /**
+   * 更新认证申请
+   */
+  @Put('application')
+  @UseGuards(JwtAuthGuard)
+  async updateApplication(@Request() req, @Body() dto: UpdateApplicationDto) {
+    const result = await this.coachService.updateApplication(req.user.userId, dto);
+    return {
+      code: 0,
+      message: '更新成功',
+      data: result,
+    };
+  }
+
+  /**
+   * 撤回认证申请
+   */
+  @Post('application/withdraw')
+  @UseGuards(JwtAuthGuard)
+  async withdrawApplication(@Request() req) {
+    await this.coachService.withdrawApplication(req.user.userId);
+    return {
+      code: 0,
+      message: '申请已撤回',
+      data: null,
     };
   }
 }

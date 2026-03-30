@@ -8,27 +8,28 @@ datasource db {
 }
 
 model User {
-  id         Int       @id @default(autoincrement())
-  openid     String    @unique
-  unionid    String?   @unique
-  phone      String?   @unique
-  avatar     String?
-  nickname   String?
-  gender     Int       @default(0)
-  birthday   DateTime?
-  height     Int?
-  weight     Int?
-  goal       String?
-  role       Int       @default(1)
-  isVerified Boolean   @default(false)
-  level      Int       @default(1)
-  status     Int       @default(1)
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
-  deletedAt  DateTime? @map("deleted_at")
-  bookings   Booking[]
-  checkins   Checkin[]
-  coach      Coach?
+  id          Int               @id @default(autoincrement())
+  openid      String            @unique
+  unionid     String?           @unique
+  phone       String?           @unique
+  avatar      String?
+  nickname    String?
+  gender      Int               @default(0)
+  birthday    DateTime?
+  height      Int?
+  weight      Int?
+  goal        String?
+  role        Int               @default(1)
+  isVerified  Boolean           @default(false)
+  level       Int               @default(1)
+  status      Int               @default(1)
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+  deletedAt   DateTime?         @map("deleted_at")
+  bookings    Booking[]
+  checkins    Checkin[]
+  coach       Coach?
+  application CoachApplication?
 
   @@index([openid])
   @@index([phone])
@@ -36,18 +37,32 @@ model User {
 }
 
 model Coach {
-  id            Int             @id @default(autoincrement())
-  userId        Int             @unique
+  id            Int     @id @default(autoincrement())
+  userId        Int     @unique
   name          String
   avatar        String?
-  gender        Int             @default(0)
-  experience    Int             @default(0)
+  gender        Int     @default(0)
+  experience    Int     @default(0)
   specialty     String?
   description   String?
   certificates  String?
-  rating        Decimal         @default(5.000000000000000000000000000000)
-  totalSessions Int             @default(0)
-  price         Int             @default(0)
+  rating        Decimal @default(5.000000000000000000000000000000)
+  totalSessions Int     @default(0)
+  price         Int     @default(0)
+
+  // 认证相关字段
+  verificationStatus Int       @default(0) // 0-未认证，1-认证中，2-已认证，3-已拒绝
+  verificationReason String? // 审核拒绝原因
+  verifiedAt         DateTime? // 认证通过时间
+  reviewedBy         Int? // 审核管理员 ID
+  reviewedAt         DateTime? // 审核时间
+
+  // 补充信息
+  phone          String?
+  birthday       DateTime?
+  workExperience String? // JSON 字符串
+  achievements   String? // JSON 字符串
+
   status        Int             @default(1)
   createdAt     DateTime        @default(now()) @map("created_at")
   updatedAt     DateTime        @updatedAt @map("updated_at")
@@ -61,6 +76,7 @@ model Coach {
 
   @@index([userId])
   @@index([status])
+  @@index([verificationStatus])
   @@map("coaches")
 }
 
@@ -223,4 +239,31 @@ model UserCoach {
   @@index([userId])
   @@index([coachId])
   @@map("user_coaches")
+}
+
+model CoachApplication {
+  id             Int       @id @default(autoincrement())
+  userId         Int       @unique
+  name           String
+  phone          String
+  avatar         String?
+  gender         Int       @default(0)
+  birthday       DateTime?
+  specialty      String?
+  experience     Int       @default(0)
+  description    String?
+  price          Int       @default(0)
+  certificates   String? // JSON 字符串
+  workExperience String? // JSON 字符串
+  achievements   String? // JSON 字符串
+  status         Int       @default(0) // 0-待审核，1-通过，2-拒绝
+  reason         String? // 拒绝原因
+  reviewedBy     Int? // 审核管理员 ID
+  reviewedAt     DateTime?
+  submittedAt    DateTime  @default(now())
+  user           User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@map("coach_applications")
 }

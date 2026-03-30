@@ -470,4 +470,202 @@ export class CoachService {
     if (days < 7) return `${days}天前`;
     return new Date(date).toLocaleDateString('zh-CN');
   }
+
+  /**
+   * 提交教练认证申请
+   */
+  async submitApplication(userId: number, data: {
+    name: string;
+    gender: number;
+    birthday?: string;
+    specialty?: string[];
+    experience: number;
+    description: string;
+    price: number;
+    certificates?: any[];
+    workExperience?: any[];
+    achievements?: any[];
+  }) {
+    // 检查是否已经是教练
+    const existingCoach = await this.prisma.coach.findUnique({
+      where: { userId },
+    });
+
+    if (existingCoach && existingCoach.verificationStatus === 2) {
+      throw new BadRequestException('你已经是认证教练了');
+    }
+
+    // 检查是否已有申请
+    const existingApplication = await this.prisma.coachApplication.findUnique({
+      where: { userId },
+    });
+
+    if (existingApplication && existingApplication.status === 0) {
+      throw new BadRequestException('你已提交过申请，请等待审核结果');
+    }
+
+    // 获取用户信息
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException('用户不存在');
+    }
+
+    // 创建或更新申请
+    return this.prisma.coachApplication.upsert({
+      where: { userId },
+      create: {
+        userId,
+        name: data.name,
+        phone: user.phone || '',
+        avatar: user.avatar,
+        gender: data.gender,
+        birthday: data.birthday ? new Date(data.birthday) : null,
+        specialty: data.specialty ? JSON.stringify(data.specialty) : null,
+        experience: data.experience,
+        description: data.description,
+        price: data.price,
+        certificates: data.certificates ? JSON.stringify(data.certificates) : null,
+        workExperience: data.workExperience ? JSON.stringify(data.workExperience) : null,
+        achievements: data.achievements ? JSON.stringify(data.achievements) : null,
+        status: 0,
+      },
+      update: {
+        name: data.name,
+        gender: data.gender,
+        birthday: data.birthday ? new Date(data.birthday) : null,
+        specialty: data.specialty ? JSON.stringify(data.specialty) : null,
+        experience: data.experience,
+        description: data.description,
+        price: data.price,
+        certificates: data.certificates ? JSON.stringify(data.certificates) : null,
+        workExperience: data.workExperience ? JSON.stringify(data.workExperience) : null,
+        achievements: data.achievements ? JSON.stringify(data.achievements) : null,
+        status: 0,
+        reviewedAt: null,
+        reason: null,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            nickname: true,
+            avatar: true,
+          },
+        },
+      },
+    });
+  }
+
+  /**
+   * 查询认证申请状态
+   */
+  async getApplicationStatus(userId: number) {
+    const application = await this.prisma.coachApplication.findUnique({
+      where: { userId },
+      include: {
+        user: {
+          select: {
+            id: true,
+            nickname: true,
+            avatar: true,
+          },
+        },
+      },
+    });
+
+    if (!application) {
+      return {
+        hasApplication: false,
+        isCoach: false,
+      };
+    }
+
+    const coach = await this.prisma.coach.findUnique({
+      where: { userId },
+    });
+
+    return {
+      hasApplication: true,
+      application: {
+        id: application.id,
+        status: application.status,
+        submittedAt: application.submittedAt,
+        reviewedAt: application.reviewedAt,
+        reason: application.reason,
+      },
+      isCoach: coach?.verificationStatus === 2,
+    };
+  }
+
+  /**
+   * 更新认证申请（仅待审核状态可更新）
+   */
+  async updateApplication(
+    userId: number,
+    data: {
+      name?: string;
+      gender?: number;
+      birthday?: string;
+      specialty?: string[];
+      experience?: number;
+      description?: string;
+      price?: number;
+      certificates?: any[];
+      workExperience?: any[];
+      achievements?: any[];
+    },
+  ) {
+    const application = await this.prisma.coachApplication.findUnique({
+      where: { userId },
+    });
+
+    if (!application) {
+      throw new NotFoundException('未找到申请记录');
+    }
+
+    if (application.status !== 0) {
+      throw new BadRequestException('只有待审核状态的申请才能修改');
+    }
+
+    const updateData: any = {};
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.gender !== undefined) updateData.gender = data.gender;
+    if (data.birthday !== undefined) updateData.birthday = new Date(data.birthday);
+    if (data.specialty !== undefined) updateData.specialty = JSON.stringify(data.specialty);
+    if (data.experience !== undefined) updateData.experience = data.experience;
+    if (data.description !== undefined) updateData.description = data.description;
+    if (data.price !== undefined) updateData.price = data.price;
+    if (data.certificates !== undefined) updateData.certificates = JSON.stringify(data.certificates);
+    if (data.workExperience !== undefined) updateData.workExperience = JSON.stringify(data.workExperience);
+    if (data.achievements !== undefined) updateData.achievements = JSON.stringify(data.achievements);
+
+    return this.prisma.coachApplication.update({
+      where: { userId },
+      data: updateData,
+    });
+  }
+
+  /**
+   * 撤回认证申请（仅待审核状态可撤回）
+   */
+  async withdrawApplication(userId: number) {
+    const application = await this.prisma.coachApplication.findUnique({
+      where: { userId },
+    });
+
+    if (!application) {
+      throw new NotFoundException('未找到申请记录');
+    }
+
+    if (application.status !== 0) {
+      throw new BadRequestException('只有待审核状态的申请才能撤回');
+    }
+
+    return this.prisma.coachApplication.delete({
+      where: { userId },
+    });
+  }
 }
