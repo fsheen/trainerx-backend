@@ -19,6 +19,7 @@ export class CoachService {
 
     const where: any = {
       status: 1, // 只显示正常状态的教练
+      verificationStatus: 2, // 只显示已认证的教练（2=已认证）
     };
 
     // 专长筛选
@@ -101,6 +102,11 @@ export class CoachService {
 
     if (!coach) {
       throw new NotFoundException('教练不存在');
+    }
+
+    // 检查认证状态（未认证的教练不对外展示）
+    if (coach.verificationStatus !== 2) {
+      throw new ForbiddenException('该教练尚未认证，无法查看');
     }
 
     return coach;
