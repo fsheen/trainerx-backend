@@ -65,6 +65,10 @@ model Coach {
   workExperience String? // JSON 字符串
   achievements   String? // JSON 字符串
 
+  // 学员管理相关
+  maxStudents    Int     @default(50)  // 最大学员数
+  activeStudents Int    @default(0)   // 活跃学员数
+
   status        Int             @default(1)
   createdAt     DateTime        @default(now()) @map("created_at")
   updatedAt     DateTime        @updatedAt @map("updated_at")
@@ -75,6 +79,10 @@ model Coach {
   courses       Course[]
   reviews       Review[]
   trainingPlans TrainingPlan[]
+  students      Student[]
+  coursePackages StudentCoursePackage[]
+  sessions      CourseSession[]
+  templates     CourseTemplate[]
 
   @@index([userId])
   @@index([status])
@@ -290,4 +298,141 @@ model Notification {
   @@index([type])
   @@index([createdAt])
   @@map("notifications")
+}
+
+// ========== 学员管理相关模型 ==========
+
+// 学员表（独立于注册用户，教练可手动创建）
+model Student {
+  id            Int       @id @default(autoincrement())
+  coachId       Int                          // 所属教练
+  name          String                       // 学员姓名
+  phone         String?                      // 手机号
+  gender        Int       @default(0)        // 0-未知，1-男，2-女
+  birthday      DateTime?                    // 生日
+  height        Int?                         // 身高 (cm)
+  weight        Decimal?                     // 体重 (kg)
+  goal          String?                      // 训练目标
+  note          String?                      // 教练备注
+  avatar        String?                      // 头像
+  status        Int       @default(1)        // 1-活跃，0-非活跃
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime? @map("deleted_at")
+  
+  // 关系
+  coach         Coach           @relation(fields: [coachId], references: [id])
+  coursePackages StudentCoursePackage[]
+  sessions      CourseSession[]
+  weightRecords WeightRecord[]
+  
+  @@index([coachId])
+  @@index([status])
+  @@map("students")
+}
+
+// 学员课时包表
+model StudentCoursePackage {
+  id                Int       @id @default(autoincrement())
+  studentId         Int                          // 学员 ID
+  coachId           Int                          // 教练 ID
+  courseName        String                       // 课程名称
+  totalSessions     Int                          // 总课时
+  usedSessions      Int       @default(0)        // 已消耗课时
+  remainingSessions Int                          // 剩余课时
+  price             Int                          // 价格（分）
+  purchaseDate      DateTime                     // 购买日期
+  expireDate        DateTime?                    // 过期日期
+  status            Int       @default(1)        // 1-有效，0-过期/用完
+  note              String?                      // 备注
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime? @map("deleted_at")
+  
+  // 关系
+  student       Student         @relation(fields: [studentId], references: [id])
+  coach         Coach           @relation(fields: [coachId], references: [id])
+  sessions      CourseSession[]
+  
+  @@index([studentId])
+  @@index([coachId])
+  @@index([status])
+  @@map("student_course_packages")
+}
+
+// 课程会话表（具体的每次课程）
+model CourseSession {
+  id            Int       @id @default(autoincrement())
+  coachId       Int                          // 教练 ID
+  studentId     Int                          // 学员 ID
+  packageId     Int?                         // 关联的课时包 ID
+  startTime     DateTime                     // 开始时间
+  endTime       DateTime                     // 结束时间
+  duration      Int                          // 时长（分钟）
+  status        Int       @default(0)        // 0-待上课，1-已完成，2-已取消，3-已爽约
+  courseType    String?                      // 课程类型
+  trainContent  String?                      // 训练内容（JSON 字符串）
+  studentState  String?                      // 学员状态
+  coachNote     String?                      // 教练备注/下次建议
+  images        String?                      // 课程照片（JSON 数组）
+  isDeducted    Boolean   @default(false)    // 是否已扣课时
+  cancelReason  String?                      // 取消原因
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime? @map("deleted_at")
+  
+  // 关系
+  coach         Coach           @relation(fields: [coachId], references: [id])
+  student       Student         @relation(fields: [studentId], references: [id])
+  package       StudentCoursePackage? @relation(fields: [packageId], references: [id])
+  
+  @@index([coachId])
+  @@index([studentId])
+  @@index([status])
+  @@index([startTime])
+  @@map("course_sessions")
+}
+
+// 体重记录表
+model WeightRecord {
+  id            Int       @id @default(autoincrement())
+  studentId     Int                          // 学员 ID
+  weight        Decimal                      // 体重 (kg)
+  bodyFat       Decimal?                     // 体脂率 (%)
+  muscleMass    Decimal?                     // 肌肉量 (kg)
+  note          String?                      // 备注
+  recordDate    DateTime                     // 记录日期
+  createdAt     DateTime  @default(now())
+  deletedAt     DateTime? @map("deleted_at")
+  
+  // 关系
+  student       Student         @relation(fields: [studentId], references: [id])
+  
+  @@index([studentId])
+  @@index([recordDate])
+  @@map("weight_records")
+}
+
+// 课程模板表
+model CourseTemplate {
+  id            Int       @id @default(autoincrement())
+  coachId       Int                          // 教练 ID
+  name          String                       // 模板名称
+  courseType    String                       // 课程类型
+  duration      Int                          // 预计时长（分钟）
+  exercises     Json                         // 训练动作（JSON 数组）
+  description   String?                      // 描述
+  isPublic      Boolean   @default(false)    // 是否公开
+  usageCount    Int       @default(0)        // 使用次数
+  status        Int       @default(1)        // 1-启用，0-禁用
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime? @map("deleted_at")
+  
+  // 关系
+  coach         Coach           @relation(fields: [coachId], references: [id])
+  
+  @@index([coachId])
+  @@index([status])
+  @@map("course_templates")
 }

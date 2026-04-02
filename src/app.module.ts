@@ -10,6 +10,7 @@ import { BookingModule } from './modules/booking/booking.module';
 import { CourseModule } from './modules/course/course.module';
 import { CheckinModule } from './modules/checkin/checkin.module';
 import { NotificationModule } from './modules/notification/notification.module';
+import { StudentModule } from './modules/student/student.module';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
 
 @Module({
@@ -44,6 +45,7 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
     CourseModule,
     CheckinModule,
     NotificationModule,
+    StudentModule,
   ],
 })
 export class AppModule implements NestModule {
