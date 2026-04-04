@@ -37,8 +37,8 @@ export class CourseSessionController {
    */
   @Get('dashboard/today')
   async getTodaySessions(@Request() req: any) {
-    const coachId = req.user.coachId;
-    return this.sessionService.getTodaySessions(coachId);
+    const userId = req.user.userId;
+    return this.sessionService.getTodaySessions(userId);
   }
 
   /**
@@ -51,8 +51,8 @@ export class CourseSessionController {
     @Query('page', new ParseIntPipe({ optional: true })) page?: number,
     @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
   ) {
-    const coachId = req.user.coachId;
-    return this.sessionService.findByStudent(studentId, coachId, page, limit);
+    const userId = req.user.userId;
+    return this.sessionService.findByStudent(studentId, userId, page, limit);
   }
 
   /**
@@ -63,8 +63,8 @@ export class CourseSessionController {
     @Request() req: any,
     @Param('id', ParseIntPipe) id: number,
   ) {
-    const coachId = req.user.coachId;
-    return this.sessionService.findOne(id, coachId);
+    const userId = req.user.userId;
+    return this.sessionService.findOne(id, userId);
   }
 
   /**
@@ -75,8 +75,8 @@ export class CourseSessionController {
     @Request() req: any,
     @Body() dto: CreateCourseSessionDto,
   ) {
-    const coachId = req.user.coachId;
-    return this.sessionService.create(coachId, dto);
+    const userId = req.user.userId;
+    return this.sessionService.create(userId, dto);
   }
 
   /**
@@ -88,8 +88,8 @@ export class CourseSessionController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateCourseSessionDto,
   ) {
-    const coachId = req.user.coachId;
-    return this.sessionService.update(id, coachId, dto);
+    const userId = req.user.userId;
+    return this.sessionService.update(id, userId, dto);
   }
 
   /**
@@ -106,8 +106,8 @@ export class CourseSessionController {
       images?: string;
     },
   ) {
-    const coachId = req.user.coachId;
-    return this.sessionService.complete(id, coachId, dto);
+    const userId = req.user.userId;
+    return this.sessionService.complete(id, userId, dto);
   }
 
   /**
@@ -119,7 +119,7 @@ export class CourseSessionController {
     @Param('id', ParseIntPipe) id: number,
     @Body('reason') reason: string,
   ) {
-    const coachId = req.user.coachId;
-    return this.sessionService.cancel(id, coachId, reason);
+    const userId = req.user.userId;
+    return this.sessionService.cancel(id, userId, reason);
   }
 }
