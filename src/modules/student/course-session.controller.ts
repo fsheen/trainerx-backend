@@ -16,8 +16,8 @@ export class CourseSessionController {
     @Request() req: any,
     @Query('page', new ParseIntPipe({ optional: true })) page?: number,
     @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
-    @Query('status', new ParseIntPipe({ optional: true })) status?: number,
-    @Query('studentId', new ParseIntPipe({ optional: true })) studentId?: number,
+    @Query('status') status?: string,
+    @Query('studentId') studentId?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
@@ -25,8 +25,8 @@ export class CourseSessionController {
     return this.sessionService.findAll(coachId, {
       page,
       limit,
-      status,
-      studentId,
+      status: status ? parseInt(status) : undefined,
+      studentId: studentId ? parseInt(studentId) : undefined,
       startDate,
       endDate,
     });
