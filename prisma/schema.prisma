@@ -318,7 +318,7 @@ model Student {
   status        Int       @default(1)        // 1-活跃，0-非活跃
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-  deletedAt     DateTime? @map("deleted_at")
+  deletedAt     DateTime?
   
   // 关系
   coach         Coach           @relation(fields: [coachId], references: [id])
@@ -379,7 +379,7 @@ model CourseSession {
   cancelReason  String?                      // 取消原因
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-  deletedAt     DateTime? @map("deleted_at")
+  deletedAt     DateTime?
   
   // 关系
   coach         Coach           @relation(fields: [coachId], references: [id])
@@ -403,7 +403,7 @@ model WeightRecord {
   note          String?                      // 备注
   recordDate    DateTime                     // 记录日期
   createdAt     DateTime  @default(now())
-  deletedAt     DateTime? @map("deleted_at")
+  deletedAt     DateTime?
   
   // 关系
   student       Student         @relation(fields: [studentId], references: [id])
@@ -427,7 +427,7 @@ model CourseTemplate {
   status        Int       @default(1)        // 1-启用，0-禁用
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-  deletedAt     DateTime? @map("deleted_at")
+  deletedAt     DateTime?
   
   // 关系
   coach         Coach           @relation(fields: [coachId], references: [id])
