@@ -5,6 +5,8 @@ import {
   Request,
   Param,
   ParseIntPipe,
+  Put,
+  Body,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -46,6 +48,19 @@ export class UserController {
   @Get(':id')
   async getUser(@Param('id', ParseIntPipe) id: number) {
     const user = await this.userService.getUserDetail(id);
+    return {
+      code: 0,
+      message: 'success',
+      data: user,
+    };
+  }
+
+  /**
+   * 更新用户资料（头像和昵称）
+   */
+  @Put('me/profile')
+  async updateProfile(@Request() req, @Body() dto: { avatar?: string; nickname?: string }) {
+    const user = await this.userService.updateProfile(req.user.userId, dto);
     return {
       code: 0,
       message: 'success',

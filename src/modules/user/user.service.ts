@@ -54,4 +54,23 @@ export class UserService {
       totalCalories: totalCalories._sum.calories || 0,
     };
   }
+
+  /**
+   * 更新用户资料（头像和昵称）
+   */
+  async updateProfile(userId: number, data: { avatar?: string; nickname?: string }) {
+    const updateData: { avatar?: string; nickname?: string } = {};
+    if (data.avatar !== undefined) updateData.avatar = data.avatar;
+    if (data.nickname !== undefined) updateData.nickname = data.nickname;
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+      select: {
+        id: true,
+        nickname: true,
+        avatar: true,
+      },
+    });
+  }
 }

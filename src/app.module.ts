@@ -11,6 +11,7 @@ import { CourseModule } from './modules/course/course.module';
 import { CheckinModule } from './modules/checkin/checkin.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { StudentModule } from './modules/student/student.module';
+import { UploadModule } from './modules/upload/upload.module';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
 
 @Module({
@@ -37,6 +38,9 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
     // Passport 认证
     AppPassportModule,
 
+    // 静态文件服务（上传的图片）
+    // uploads 目录由 UploadController 管理
+
     // 业务模块
     AuthModule,
     UserModule,
@@ -46,6 +50,7 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
     CheckinModule,
     NotificationModule,
     StudentModule,
+    UploadModule,
   ],
 })
 export class AppModule implements NestModule {
