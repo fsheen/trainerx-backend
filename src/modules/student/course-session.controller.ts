@@ -14,8 +14,8 @@ export class CourseSessionController {
   @Get()
   async findAll(
     @Request() req: any,
-    @Query('page', new ParseIntPipe({ optional: true })) page?: number,
-    @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
     @Query('status') status?: string,
     @Query('studentId') studentId?: string,
     @Query('startDate') startDate?: string,
@@ -23,8 +23,8 @@ export class CourseSessionController {
   ) {
     const userId = req.user.userId;
     return this.sessionService.findAll(userId, {
-      page,
-      limit,
+      page: page ? parseInt(page) : undefined,
+      limit: limit ? parseInt(limit) : undefined,
       status: status ? parseInt(status) : undefined,
       studentId: studentId ? parseInt(studentId) : undefined,
       startDate,
