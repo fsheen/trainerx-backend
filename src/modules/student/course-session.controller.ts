@@ -21,8 +21,8 @@ export class CourseSessionController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    const coachId = req.user.coachId;
-    return this.sessionService.findAll(coachId, {
+    const userId = req.user.userId;
+    return this.sessionService.findAll(userId, {
       page,
       limit,
       status: status ? parseInt(status) : undefined,

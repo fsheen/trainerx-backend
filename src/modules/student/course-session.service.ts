@@ -9,7 +9,7 @@ export class CourseSessionService {
   /**
    * 获取教练的课程会话列表
    */
-  async findAll(coachId: number, params: {
+  async findAll(userId: number, params: {
     page?: number;
     limit?: number;
     status?: number;
@@ -17,6 +17,17 @@ export class CourseSessionService {
     startDate?: string;
     endDate?: string;
   }) {
+    // 先通过 userId 查询教练信息
+    const coach = await this.prisma.coach.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+
+    if (!coach) {
+      throw new NotFoundException('教练信息不存在');
+    }
+
+    const coachId = coach.id;
     const { page = 1, limit = 20, status, studentId, startDate, endDate } = params;
     const skip = (page - 1) * limit;
 
