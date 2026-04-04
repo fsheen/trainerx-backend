@@ -122,4 +122,13 @@ export class CourseSessionController {
     const userId = req.user.userId;
     return this.sessionService.cancel(id, userId, reason);
   }
+
+  /**
+   * 获取本月统计
+   */
+  @Get('stats/month')
+  async getMonthStats(@Request() req: any) {
+    const userId = req.user.userId;
+    return this.sessionService.getMonthStats(userId);
+  }
 }

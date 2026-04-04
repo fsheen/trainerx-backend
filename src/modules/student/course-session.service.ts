@@ -320,4 +320,49 @@ export class CourseSessionService {
 
     return session;
   }
+
+  /**
+   * 获取本月统计
+   */
+  async getMonthStats(userId: number) {
+    const coachId = await this.getCoachId(userId);
+    
+    // 获取本月开始和结束时间
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+    // 查询本月完成的课程
+    const completedSessions = await this.prisma.courseSession.findMany({
+      where: {
+        coachId,
+        status: 1, // 已完成
+        startTime: {
+          gte: monthStart,
+          lte: monthEnd,
+        },
+        deletedAt: null,
+      },
+      include: {
+        package: {
+          select: {
+            price: true,
+          },
+        },
+      },
+    });
+
+    // 计算总收入和课程数
+    const total = completedSessions.length;
+    const income = completedSessions.reduce((sum, session) => {
+      return sum + (session.package?.price || 0);
+    }, 0);
+
+    return {
+      total,
+      income,
+      monthStart: monthStart.toISOString(),
+      monthEnd: monthEnd.toISOString(),
+    };
+  }
 }
