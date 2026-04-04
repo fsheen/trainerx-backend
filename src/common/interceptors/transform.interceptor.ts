@@ -23,12 +23,18 @@ export class TransformInterceptor<T>
     next: CallHandler,
   ): Observable<Response<T>> {
     return next.handle().pipe(
-      map((data) => ({
-        code: 200,
-        message: 'success',
-        data,
-        timestamp: Date.now(),
-      })),
+      map((data) => {
+        // 如果 controller 已经返回了 {code, message, data} 格式，直接返回不重复包裹
+        if (data && typeof data === 'object' && 'code' in data && 'data' in data) {
+          return data;
+        }
+        return {
+          code: 200,
+          message: 'success',
+          data,
+          timestamp: Date.now(),
+        } as Response<T>;
+      }),
     );
   }
 }
