@@ -18,7 +18,7 @@ export class StudentController {
     @Query('limit') limit?: string,
     @Query('keyword') keyword?: string,
   ) {
-    const coachId = req.user.coachId;
+    const coachId = await this.studentService.getCoachId(req.user.userId);
     return this.studentService.findAll(coachId, page ? parseInt(page) : 1, limit ? parseInt(limit) : 20, keyword);
   }
 
@@ -30,7 +30,7 @@ export class StudentController {
     @Request() req: any,
     @Param('id', ParseIntPipe) id: number,
   ) {
-    const coachId = req.user.coachId;
+    const coachId = await this.studentService.getCoachId(req.user.userId);
     return this.studentService.findOne(id, coachId);
   }
 
@@ -42,7 +42,7 @@ export class StudentController {
     @Request() req: any,
     @Body() dto: CreateStudentDto,
   ) {
-    const coachId = req.user.coachId;
+    const coachId = await this.studentService.getCoachId(req.user.userId);
     return this.studentService.create(coachId, dto);
   }
 
@@ -55,7 +55,7 @@ export class StudentController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateStudentDto,
   ) {
-    const coachId = req.user.coachId;
+    const coachId = await this.studentService.getCoachId(req.user.userId);
     return this.studentService.update(id, coachId, dto);
   }
 
@@ -67,7 +67,7 @@ export class StudentController {
     @Request() req: any,
     @Param('id', ParseIntPipe) id: number,
   ) {
-    const coachId = req.user.coachId;
+    const coachId = await this.studentService.getCoachId(req.user.userId);
     return this.studentService.remove(id, coachId);
   }
 }

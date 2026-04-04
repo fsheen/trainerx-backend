@@ -7,6 +7,20 @@ export class StudentService {
   constructor(private prisma: PrismaService) {}
 
   /**
+   * 通过 userId 获取教练 ID
+   */
+  private async getCoachId(userId: number): Promise<number> {
+    const coach = await this.prisma.coach.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    if (!coach) {
+      throw new ForbiddenException('未找到教练档案');
+    }
+    return coach.id;
+  }
+
+  /**
    * 获取教练的所有学员列表
    */
   async findAll(coachId: number, page: number = 1, limit: number = 20, keyword?: string) {
