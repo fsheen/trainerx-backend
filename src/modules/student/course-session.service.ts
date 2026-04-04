@@ -7,6 +7,20 @@ export class CourseSessionService {
   constructor(private prisma: PrismaService) {}
 
   /**
+   * 通过 userId 获取教练 ID
+   */
+  private async getCoachId(userId: number): Promise<number> {
+    const coach = await this.prisma.coach.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    if (!coach) {
+      throw new NotFoundException('教练信息不存在');
+    }
+    return coach.id;
+  }
+
+  /**
    * 获取教练的课程会话列表
    */
   async findAll(userId: number, params: {
@@ -17,17 +31,7 @@ export class CourseSessionService {
     startDate?: string;
     endDate?: string;
   }) {
-    // 先通过 userId 查询教练信息
-    const coach = await this.prisma.coach.findUnique({
-      where: { userId },
-      select: { id: true },
-    });
-
-    if (!coach) {
-      throw new NotFoundException('教练信息不存在');
-    }
-
-    const coachId = coach.id;
+    const coachId = await this.getCoachId(userId);
     const { page = 1, limit = 20, status, studentId, startDate, endDate } = params;
     const skip = (page - 1) * limit;
 
@@ -88,7 +92,8 @@ export class CourseSessionService {
   /**
    * 获取今日课程
    */
-  async getTodaySessions(coachId: number) {
+  async getTodaySessions(userId: number) {
+    const coachId = await this.getCoachId(userId);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
@@ -129,7 +134,8 @@ export class CourseSessionService {
   /**
    * 获取学员的课程会话
    */
-  async findByStudent(studentId: number, coachId: number, page = 1, limit = 20) {
+  async findByStudent(studentId: number, userId: number, page = 1, limit = 20) {
+    const coachId = await this.getCoachId(userId);
     const skip = (page - 1) * limit;
 
     const [sessions, total] = await Promise.all([
@@ -172,7 +178,8 @@ export class CourseSessionService {
   /**
    * 创建课程会话
    */
-  async create(coachId: number, dto: CreateCourseSessionDto) {
+  async create(userId: number, dto: CreateCourseSessionDto) {
+    const coachId = await this.getCoachId(userId);
     const startTime = new Date(dto.startTime);
     const endTime = new Date(startTime.getTime() + dto.duration * 60000);
 
@@ -205,7 +212,8 @@ export class CourseSessionService {
   /**
    * 更新课程会话
    */
-  async update(id: number, coachId: number, dto: UpdateCourseSessionDto) {
+  async update(id: number, userId: number, dto: UpdateCourseSessionDto) {
+    const coachId = await this.getCoachId(userId);
     const session = await this.prisma.courseSession.findFirst({
       where: { id, coachId, deletedAt: null },
     });
@@ -256,8 +264,8 @@ export class CourseSessionService {
   /**
    * 取消课程
    */
-  async cancel(id: number, coachId: number, reason: string) {
-    return this.update(id, coachId, {
+  async cancel(id: number, userId: number, reason: string) {
+    return this.update(id, userId, {
       status: 2,
       cancelReason: reason,
     });
@@ -266,13 +274,13 @@ export class CourseSessionService {
   /**
    * 完成课程
    */
-  async complete(id: number, coachId: number, dto: {
+  async complete(id: number, userId: number, dto: {
     trainContent?: string;
     studentState?: string;
     coachNote?: string;
     images?: string;
   }) {
-    return this.update(id, coachId, {
+    return this.update(id, userId, {
       status: 1,
       ...dto,
       isDeducted: true,
@@ -282,7 +290,8 @@ export class CourseSessionService {
   /**
    * 获取课程会话详情
    */
-  async findOne(id: number, coachId: number) {
+  async findOne(id: number, userId: number) {
+    const coachId = await this.getCoachId(userId);
     const session = await this.prisma.courseSession.findFirst({
       where: { id, coachId, deletedAt: null },
       include: {
