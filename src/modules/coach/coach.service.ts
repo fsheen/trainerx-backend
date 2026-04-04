@@ -569,41 +569,37 @@ export class CoachService {
    * 查询认证申请状态
    */
   async getApplicationStatus(userId: number) {
-    const application = await this.prisma.coachApplication.findUnique({
-      where: { userId },
-      include: {
-        user: {
-          select: {
-            id: true,
-            nickname: true,
-            avatar: true,
-          },
-        },
-      },
-    });
+    try {
+      const application = await this.prisma.coachApplication.findUnique({
+        where: { userId },
+      });
 
-    if (!application) {
+      if (!application) {
+        return {
+          hasApplication: false,
+          isCoach: false,
+        };
+      }
+
+      const coach = await this.prisma.coach.findUnique({
+        where: { userId },
+      });
+
       return {
-        hasApplication: false,
-        isCoach: false,
+        hasApplication: true,
+        application: {
+          id: application.id,
+          status: application.status,
+          submittedAt: application.submittedAt,
+          reviewedAt: application.reviewedAt,
+          reason: application.reason,
+        },
+        isCoach: coach?.verificationStatus === 2,
       };
+    } catch (error) {
+      console.error('getApplicationStatus error:', error);
+      throw error;
     }
-
-    const coach = await this.prisma.coach.findUnique({
-      where: { userId },
-    });
-
-    return {
-      hasApplication: true,
-      application: {
-        id: application.id,
-        status: application.status,
-        submittedAt: application.submittedAt,
-        reviewedAt: application.reviewedAt,
-        reason: application.reason,
-      },
-      isCoach: coach?.verificationStatus === 2,
-    };
   }
 
   /**
