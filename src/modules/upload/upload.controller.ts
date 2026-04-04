@@ -24,7 +24,7 @@ export class UploadController {
 
   @Post('image')
   @UseInterceptors(FileInterceptor('file'))
-  async uploadImage(@UploadedFile() file: Express.Multer.File) {
+  async uploadImage(@UploadedFile() file: any) {
     if (!file) {
       throw new Error('No file uploaded');
     }
