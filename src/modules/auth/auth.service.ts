@@ -90,7 +90,7 @@ export class AuthService {
   /**
    * 微信登录
    */
-  async wxLogin(code: string) {
+  async wxLogin(code: string, inviteCode?: string) {
     const appId = this.configService.get('WECHAT_APP_ID');
     const appSecret = this.configService.get('WECHAT_APP_SECRET');
 
@@ -108,6 +108,11 @@ export class AuthService {
       
       // 查询或创建用户
       const user = await this.findOrCreateUser(openid);
+
+      // 处理邀请码关联学员
+      if (inviteCode) {
+        await this.acceptInviteCode(user.id, inviteCode);
+      }
 
       // 生成 JWT token
       const token = this.jwtService.sign({
@@ -156,6 +161,11 @@ export class AuthService {
       // 查询或创建用户
       const user = await this.findOrCreateUser(openid);
 
+      // 处理邀请码关联学员
+      if (inviteCode) {
+        await this.acceptInviteCode(user.id, inviteCode);
+      }
+
       // 生成 JWT token
       const token = this.jwtService.sign({
         openid,
@@ -185,6 +195,33 @@ export class AuthService {
       }
       throw new UnauthorizedException('微信登录失败：' + error.message);
     }
+  }
+
+  /**
+   * 接受邀请码，关联学员到微信用户
+   */
+  private async acceptInviteCode(userId: number, inviteCode: string) {
+    const student = await this.prisma.student.findUnique({
+      where: { inviteCode },
+    });
+
+    if (!student) {
+      console.warn('邀请码无效:', inviteCode);
+      return; // 静默忽略，不影响登录
+    }
+
+    if (student.userId) {
+      console.warn('学员已被关联:', student.id);
+      return;
+    }
+
+    // 关联学员到当前微信用户
+    await this.prisma.student.update({
+      where: { id: student.id },
+      data: { userId },
+    });
+
+    console.log(`学员 ${student.name}(id=${student.id}) 已关联用户 ${userId}`);
   }
 
   /**

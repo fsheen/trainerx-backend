@@ -94,13 +94,28 @@ export class StudentService {
   }
 
   /**
+   * 生成唯一邀请码
+   */
+  private generateInviteCode(): string {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = 'STU';
+    for (let i = 0; i < 8; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+  }
+
+  /**
    * 创建学员
    */
   async create(coachId: number, dto: CreateStudentDto) {
+    const inviteCode = this.generateInviteCode();
+
     const student = await this.prisma.student.create({
       data: {
         ...dto,
         coachId,
+        inviteCode,
         birthday: dto.birthday ? new Date(dto.birthday) : null,
       },
     });

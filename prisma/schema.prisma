@@ -316,6 +316,8 @@ model Student {
   note          String?                      // 教练备注
   avatar        String?                      // 头像
   status        Int       @default(1)        // 1-活跃，0-非活跃
+  inviteCode    String?   @unique            // 邀请码
+  userId        Int?      @unique            // 关联的微信用户 ID
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   deletedAt     DateTime?

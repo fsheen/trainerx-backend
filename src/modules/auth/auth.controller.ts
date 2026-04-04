@@ -17,6 +17,10 @@ class WxLoginDto {
   @IsString()
   @IsNotEmpty()
   code: string;
+
+  @IsOptional()
+  @IsString()
+  inviteCode?: string;
 }
 
 class AdminLoginDto {
@@ -94,7 +98,7 @@ export class AuthController {
     }
     
     console.error('开始调用 authService.wxLogin...');
-    const result = await this.authService.wxLogin(dto.code);
+    const result = await this.authService.wxLogin(dto.code, dto.inviteCode);
     console.error('登录成功，返回 token');
     return {
       code: 0,
