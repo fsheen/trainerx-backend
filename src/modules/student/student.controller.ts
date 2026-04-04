@@ -14,12 +14,12 @@ export class StudentController {
   @Get()
   async findAll(
     @Request() req: any,
-    @Query('page', new ParseIntPipe({ optional: true })) page?: number,
-    @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
     @Query('keyword') keyword?: string,
   ) {
     const coachId = req.user.coachId;
-    return this.studentService.findAll(coachId, page || 1, limit || 20, keyword);
+    return this.studentService.findAll(coachId, page ? parseInt(page) : 1, limit ? parseInt(limit) : 20, keyword);
   }
 
   /**
