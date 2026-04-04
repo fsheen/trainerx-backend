@@ -50,8 +50,20 @@ export class CourseSessionService {
 
     if (startDate || endDate) {
       where.startTime = {};
-      if (startDate) where.startTime.gte = new Date(startDate);
-      if (endDate) where.startTime.lte = new Date(endDate);
+      if (startDate) {
+        // startDate 是日期字符串如 '2026-04-04'，从当天 00:00 开始
+        const start = new Date(startDate);
+        if (isNaN(start.getTime())) {
+          where.startTime.gte = new Date(startDate + 'T00:00:00Z');
+        } else {
+          where.startTime.gte = start;
+        }
+      }
+      if (endDate) {
+        // endDate 是日期字符串如 '2026-04-04'，到当天 23:59:59 结束
+        const endDateStr = endDate + 'T23:59:59.999Z';
+        where.startTime.lte = new Date(endDateStr);
+      }
     }
 
     const [sessions, total] = await Promise.all([
