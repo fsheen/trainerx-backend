@@ -94,20 +94,23 @@ export class CourseSessionController {
 
   /**
    * 完成课程
+   * 兼容前端字段：content/trainContent, status/studentState, nextSuggestion/coachNote, photos/images
    */
   @Post(':id/complete')
   async complete(
     @Request() req: any,
     @Param('id', ParseIntPipe) id: number,
-    @Body() dto: {
-      trainContent?: string;
-      studentState?: string;
-      coachNote?: string;
-      images?: string;
-    },
+    @Body() dto: any,
   ) {
     const userId = req.user.userId;
-    return this.sessionService.complete(id, userId, dto);
+    // 映射前端字段到后端字段
+    const mappedDto = {
+      trainContent: dto.content || dto.trainContent,
+      studentState: dto.status || dto.studentState,
+      coachNote: dto.nextSuggestion || dto.coachNote,
+      images: dto.photos ? (Array.isArray(dto.photos) ? JSON.stringify(dto.photos) : dto.photos) : dto.images,
+    };
+    return this.sessionService.complete(id, userId, mappedDto);
   }
 
   /**
