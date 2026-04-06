@@ -44,15 +44,18 @@ export class CourseSessionController {
   /**
    * 获取学员的课程列表
    */
+  /**
+   * @deprecated 使用 /students/:id 代替
+   */
   @Get('student/:studentId')
   async findByStudent(
     @Request() req: any,
     @Param('studentId', ParseIntPipe) studentId: number,
-    @Query('page', new ParseIntPipe({ optional: true })) page?: number,
-    @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
     const userId = req.user.userId;
-    return this.sessionService.findByStudent(studentId, userId, page, limit);
+    return this.sessionService.findByStudent(studentId, userId, page ? parseInt(page) : undefined, limit ? parseInt(limit) : undefined);
   }
 
   /**

@@ -81,7 +81,7 @@ export class StudentService {
       where: { id, coachId, deletedAt: null },
       include: {
         coursePackages: {
-          where: { deletedAt: null },
+          where: { status: 1, deletedAt: null },
           orderBy: { purchaseDate: 'desc' },
         },
         sessions: {
