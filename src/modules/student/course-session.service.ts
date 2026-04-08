@@ -205,6 +205,9 @@ export class CourseSessionService {
         duration: dto.duration,
         courseType: dto.courseType,
         coachNote: dto.note,
+        gymId: dto.gymId,
+        gymName: dto.gymName,
+        gymAddress: dto.gymAddress,
         status: 0, // 待上课
       },
       include: {
@@ -217,6 +220,19 @@ export class CourseSessionService {
         },
       },
     });
+
+    // 更新健身房使用次数
+    if (dto.gymId) {
+      const gymModule = await import('../gym/gym.service');
+      // 简单处理：直接更新数据库
+      await this.prisma.gym.update({
+        where: { id: dto.gymId },
+        data: {
+          usageCount: { increment: 1 },
+          lastUsedAt: new Date(),
+        },
+      });
+    }
 
     return session;
   }

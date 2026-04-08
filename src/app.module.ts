@@ -12,6 +12,8 @@ import { CheckinModule } from './modules/checkin/checkin.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { StudentModule } from './modules/student/student.module';
 import { UploadModule } from './modules/upload/upload.module';
+import { WeightRecordModule } from './modules/weight-record/weight-record.module';
+import { GymModule } from './modules/gym/gym.module';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
 
 @Module({
@@ -51,6 +53,8 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
     NotificationModule,
     StudentModule,
     UploadModule,
+    WeightRecordModule,
+    GymModule,
   ],
 })
 export class AppModule implements NestModule {

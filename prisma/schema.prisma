@@ -79,10 +79,10 @@ model Coach {
   courses       Course[]
   reviews       Review[]
   trainingPlans TrainingPlan[]
-  students      Student[]
   coursePackages StudentCoursePackage[]
   sessions      CourseSession[]
   templates     CourseTemplate[]
+  studentCoaches StudentCoach[]
 
   @@index([userId])
   @@index([status])
@@ -233,6 +233,10 @@ model StudentCoach {
   updatedAt   DateTime  @updatedAt @map("updated_at")
   deletedAt   DateTime? @map("deleted_at")
 
+  student       Student  @relation(fields: [studentId], references: [id])
+  coach         Coach    @relation(fields: [coachId], references: [id])
+
+  @@unique([studentId, coachId])
   @@index([studentId])
   @@index([coachId])
   @@index([status])
@@ -302,10 +306,9 @@ model Notification {
 
 // ========== 学员管理相关模型 ==========
 
-// 学员表（独立于注册用户，教练可手动创建）
+// 学员表（独立身份信息，不绑定单一教练，不直接关联微信）
 model Student {
   id            Int       @id @default(autoincrement())
-  coachId       Int                          // 所属教练
   name          String                       // 学员姓名
   phone         String?                      // 手机号
   gender        Int       @default(0)        // 0-未知，1-男，2-女
@@ -317,20 +320,36 @@ model Student {
   avatar        String?                      // 头像
   status        Int       @default(1)        // 1-活跃，0-非活跃
   inviteCode    String?   @unique            // 邀请码
-  userId        Int?      @unique            // 关联的微信用户 ID
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   deletedAt     DateTime?
   
   // 关系
-  coach         Coach           @relation(fields: [coachId], references: [id])
+  wechats       StudentWechat[]
+  studentCoaches StudentCoach[]
   coursePackages StudentCoursePackage[]
   sessions      CourseSession[]
   weightRecords WeightRecord[]
-  
-  @@index([coachId])
+
   @@index([status])
   @@map("students")
+}
+
+// 学员微信关联表（一个学员只对应一个微信）
+model StudentWechat {
+  id           Int       @id @default(autoincrement())
+  studentId    Int                          // 学员 ID
+  wechatOpenId String    @unique            // 微信 OpenID（唯一）
+  wechatUnionId String?                      // 微信 UnionID
+  phone        String?                      // 手机号（用于匹配）
+  confirmed    Boolean   @default(true)     // 是否已确认关联
+  createdAt    DateTime  @default(now())
+
+  student    Student  @relation(fields: [studentId], references: [id])
+
+  @@index([studentId])
+  @@index([phone])
+  @@map("student_wechats")
 }
 
 // 学员课时包表
@@ -363,6 +382,27 @@ model StudentCoursePackage {
 }
 
 // 课程会话表（具体的每次课程）
+model Gym {
+  id            Int       @id @default(autoincrement())
+  coachId       Int                          // 所属教练
+  name          String                       // 健身房名称
+  address       String                       // 详细地址
+  latitude      Decimal                      // 纬度
+  longitude     Decimal                      // 经度
+  isFavorite    Boolean   @default(false)    // 是否收藏/常去
+  usageCount    Int       @default(0)        // 使用次数
+  lastUsedAt    DateTime?                    // 最后使用时间
+  createdAt     DateTime  @default(now())
+  deletedAt     DateTime?
+  
+  // 关系
+  sessions      CourseSession[]
+  
+  @@index([coachId])
+  @@index([isFavorite])
+  @@map("gyms")
+}
+
 model CourseSession {
   id            Int       @id @default(autoincrement())
   coachId       Int                          // 教练 ID
@@ -379,6 +419,9 @@ model CourseSession {
   images        String?                      // 课程照片（JSON 数组）
   isDeducted    Boolean   @default(false)    // 是否已扣课时
   cancelReason  String?                      // 取消原因
+  gymId         Int?                         // 健身房 ID
+  gymName       String?                      // 健身房名称（快照）
+  gymAddress    String?                      // 健身房地址（快照）
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   deletedAt     DateTime?
@@ -387,11 +430,13 @@ model CourseSession {
   coach         Coach           @relation(fields: [coachId], references: [id])
   student       Student         @relation(fields: [studentId], references: [id])
   package       StudentCoursePackage? @relation(fields: [packageId], references: [id])
+  gym           Gym?            @relation(fields: [gymId], references: [id])
   
   @@index([coachId])
   @@index([studentId])
   @@index([status])
   @@index([startTime])
+  @@index([gymId])
   @@map("course_sessions")
 }
 

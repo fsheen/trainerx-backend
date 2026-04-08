@@ -9,7 +9,7 @@ export class StudentService {
   /**
    * 通过 userId 获取教练 ID
    */
-  private async getCoachId(userId: number): Promise<number> {
+  public async getCoachId(userId: number): Promise<number> {
     const coach = await this.prisma.coach.findUnique({
       where: { userId },
       select: { id: true },
@@ -21,13 +21,41 @@ export class StudentService {
   }
 
   /**
-   * 获取教练的所有学员列表
+   * 生成唯一邀请码
+   */
+  private generateInviteCode(): string {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = 'STU';
+    for (let i = 0; i < 8; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+  }
+
+  /**
+   * 获取教练的所有学员列表（通过 StudentCoach 关系表）
    */
   async findAll(coachId: number, page: number = 1, limit: number = 20, keyword?: string) {
     const skip = (page - 1) * limit;
-    
+
+    // 通过 StudentCoach 查找关联的学员
+    const studentCoaches = await this.prisma.studentCoach.findMany({
+      where: {
+        coachId,
+        status: 1,
+        deletedAt: null,
+      },
+      select: { studentId: true },
+    });
+
+    const studentIds = studentCoaches.map(sc => sc.studentId);
+
+    if (studentIds.length === 0) {
+      return { list: [], total: 0, page, limit };
+    }
+
     const where: any = {
-      coachId,
+      id: { in: studentIds },
       deletedAt: null,
     };
 
@@ -47,7 +75,7 @@ export class StudentService {
         orderBy: { createdAt: 'desc' },
         include: {
           coursePackages: {
-            where: { status: 1, deletedAt: null },
+            where: { coachId, status: 1, deletedAt: null },
             orderBy: { createdAt: 'desc' },
           },
           weightRecords: {
@@ -63,6 +91,8 @@ export class StudentService {
       list: students.map(s => ({
         ...s,
         remainingSessions: s.coursePackages.reduce((sum, pkg) => sum + pkg.remainingSessions, 0),
+        totalSessions: s.coursePackages.reduce((sum, pkg) => sum + pkg.totalSessions, 0),
+        usedSessions: s.coursePackages.reduce((sum, pkg) => sum + pkg.usedSessions, 0),
         latestWeight: s.weightRecords[0]?.weight || null,
         coursePackages: undefined,
         weightRecords: undefined,
@@ -74,17 +104,27 @@ export class StudentService {
   }
 
   /**
-   * 获取学员详情
+   * 获取学员详情（检查教练关系）
    */
   async findOne(id: number, coachId: number) {
+    // 先检查该教练是否有关联该学员
+    const relation = await this.prisma.studentCoach.findFirst({
+      where: { studentId: id, coachId, deletedAt: null },
+    });
+
+    if (!relation) {
+      throw new NotFoundException('学员不存在或无权限查看');
+    }
+
     const student = await this.prisma.student.findFirst({
-      where: { id, coachId, deletedAt: null },
+      where: { id, deletedAt: null },
       include: {
         coursePackages: {
-          where: { status: 1, deletedAt: null },
+          where: { coachId, status: 1, deletedAt: null },
           orderBy: { purchaseDate: 'desc' },
         },
         sessions: {
+          where: { coachId },
           orderBy: { startTime: 'desc' },
           take: 10,
         },
@@ -108,43 +148,86 @@ export class StudentService {
   }
 
   /**
-   * 生成唯一邀请码
-   */
-  private generateInviteCode(): string {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let code = 'STU';
-    for (let i = 0; i < 8; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return code;
-  }
-
-  /**
-   * 创建学员
+   * 创建学员（同时创建教练-学员关系）
    */
   async create(coachId: number, dto: CreateStudentDto) {
+    // 如果有手机号，检查是否已有该学员
+    if (dto.phone) {
+      const existingStudent = await this.prisma.student.findFirst({
+        where: { phone: dto.phone, deletedAt: null },
+      });
+
+      if (existingStudent) {
+        // 检查是否已有关联
+        const existingRelation = await this.prisma.studentCoach.findFirst({
+          where: { studentId: existingStudent.id, coachId, deletedAt: null },
+        });
+
+        if (existingRelation) {
+          // 已有关系，恢复它
+          await this.prisma.studentCoach.updateMany({
+            where: { studentId: existingStudent.id, coachId },
+            data: {
+              status: 1,
+              deletedAt: null,
+            },
+          });
+        } else {
+          // 创建新的教练-学员关系
+          await this.prisma.studentCoach.create({
+            data: {
+              studentId: existingStudent.id,
+              coachId,
+              startDate: new Date(),
+            },
+          });
+        }
+
+        // 更新教练的活跃学员数
+        await this.updateCoachActiveStudents(coachId);
+
+        return this.findOne(existingStudent.id, coachId);
+      }
+    }
+
+    // 创建新学员
     const inviteCode = this.generateInviteCode();
 
     const student = await this.prisma.student.create({
       data: {
-        ...dto,
-        coachId,
-        inviteCode,
+        name: dto.name,
+        phone: dto.phone,
+        gender: dto.gender,
         birthday: dto.birthday ? new Date(dto.birthday) : null,
+        height: dto.height,
+        weight: dto.weight,
+        goal: dto.goal,
+        note: dto.note,
+        avatar: dto.avatar,
+        inviteCode,
+      },
+    });
+
+    // 创建教练-学员关系
+    await this.prisma.studentCoach.create({
+      data: {
+        studentId: student.id,
+        coachId,
+        startDate: new Date(),
       },
     });
 
     // 更新教练的活跃学员数
     await this.updateCoachActiveStudents(coachId);
 
-    return student;
+    return this.findOne(student.id, coachId);
   }
 
   /**
    * 更新学员信息
    */
   async update(id: number, coachId: number, dto: UpdateStudentDto) {
-    const student = await this.findOne(id, coachId);
+    await this.findOne(id, coachId);
 
     await this.prisma.student.update({
       where: { id },
@@ -158,15 +241,31 @@ export class StudentService {
   }
 
   /**
-   * 删除学员（软删除）
+   * 删除学员（软删除教练-学员关系，而非删除学员）
    */
   async remove(id: number, coachId: number) {
     await this.findOne(id, coachId);
 
-    await this.prisma.student.update({
-      where: { id },
-      data: { deletedAt: new Date() },
+    await this.prisma.studentCoach.updateMany({
+      where: { studentId: id, coachId },
+      data: {
+        status: 0,
+        deletedAt: new Date(),
+      },
     });
+
+    // 检查该学员是否还有其他教练关系
+    const otherRelations = await this.prisma.studentCoach.count({
+      where: { studentId: id, deletedAt: null },
+    });
+
+    // 如果没有任何关系了，软删除学员
+    if (otherRelations === 0) {
+      await this.prisma.student.update({
+        where: { id },
+        data: { deletedAt: new Date() },
+      });
+    }
 
     await this.updateCoachActiveStudents(coachId);
 
@@ -177,25 +276,199 @@ export class StudentService {
    * 批量导入学员
    */
   async batchImport(coachId: number, students: CreateStudentDto[]) {
-    const created = await this.prisma.student.createMany({
-      data: students.map(s => ({
-        ...s,
-        coachId,
-        birthday: s.birthday ? new Date(s.birthday) : null,
-      })),
-    });
+    const results = { created: 0, linked: 0, skipped: 0, errors: [] };
+
+    for (const dto of students) {
+      try {
+        // 如果手机号匹配已有学员
+        if (dto.phone) {
+          const existing = await this.prisma.student.findFirst({
+            where: { phone: dto.phone, deletedAt: null },
+          });
+
+          if (existing) {
+            const existingRelation = await this.prisma.studentCoach.findFirst({
+              where: { studentId: existing.id, coachId, deletedAt: null },
+            });
+
+            if (existingRelation) {
+              results.skipped++;
+              continue;
+            }
+
+            await this.prisma.studentCoach.create({
+              data: {
+                studentId: existing.id,
+                coachId,
+                startDate: new Date(),
+              },
+            });
+            results.linked++;
+            continue;
+          }
+        }
+
+        // 创建新学员 + 关系
+        const inviteCode = this.generateInviteCode();
+        const student = await this.prisma.student.create({
+          data: {
+            name: dto.name,
+            phone: dto.phone,
+            gender: dto.gender,
+            birthday: dto.birthday ? new Date(dto.birthday) : null,
+            height: dto.height,
+            weight: dto.weight,
+            goal: dto.goal,
+            note: dto.note,
+            avatar: dto.avatar,
+            inviteCode,
+          },
+        });
+
+        await this.prisma.studentCoach.create({
+          data: {
+            studentId: student.id,
+            coachId,
+            startDate: new Date(),
+          },
+        });
+        results.created++;
+      } catch (e) {
+        results.errors.push(`学员 ${dto.name}: ${e.message}`);
+      }
+    }
 
     await this.updateCoachActiveStudents(coachId);
 
-    return { count: created.count };
+    return results;
+  }
+
+  /**
+   * 生成邀请码（供学员微信关联使用）
+   */
+  async generateStudentInviteCode(studentId: number, coachId: number) {
+    await this.findOne(studentId, coachId);
+
+    const inviteCode = this.generateInviteCode();
+    await this.prisma.student.update({
+      where: { id: studentId },
+      data: { inviteCode },
+    });
+
+    return { inviteCode };
+  }
+
+  /**
+   * 学员通过邀请码关联微信
+   */
+  async linkStudentToWechat(inviteCode: string, wechatOpenId: string, wechatUnionId?: string, phone?: string) {
+    const student = await this.prisma.student.findUnique({
+      where: { inviteCode },
+    });
+
+    if (!student) {
+      throw new NotFoundException('邀请码无效');
+    }
+
+    // 检查是否已关联
+    const existing = await this.prisma.studentWechat.findUnique({
+      where: { wechatOpenId },
+      include: { student: true },
+    });
+
+    if (existing) {
+      // 同一个关联
+      if (existing.studentId === student.id) {
+        return {
+          message: '已关联',
+          student,
+          isNew: false,
+        };
+      }
+
+      // 同一个微信关联其他学员
+      await this.prisma.studentWechat.create({
+        data: {
+          studentId: student.id,
+          wechatOpenId,
+          wechatUnionId,
+          phone: phone || student.phone,
+        },
+      });
+
+      return {
+        message: '已关联新学员',
+        student,
+        isNew: true,
+      };
+    }
+
+    // 首次关联
+    await this.prisma.studentWechat.create({
+      data: {
+        studentId: student.id,
+        wechatOpenId,
+        wechatUnionId,
+        phone: phone || student.phone,
+      },
+    });
+
+    return {
+      message: '关联成功',
+      student,
+      isNew: true,
+    };
+  }
+
+  /**
+   * 通过 OpenID 获取学员关联的所有教练关系
+   */
+  async getStudentCoachesByOpenId(wechatOpenId: string) {
+    const wechats = await this.prisma.studentWechat.findMany({
+      where: { wechatOpenId },
+      include: {
+        student: {
+          include: {
+            coursePackages: {
+              include: { coach: true },
+            },
+          },
+        },
+      },
+    });
+
+    const relations = [];
+    for (const w of wechats) {
+      const coachRelations = await this.prisma.studentCoach.findMany({
+        where: { studentId: w.studentId, deletedAt: null },
+        include: {
+          coach: {
+            include: {
+              user: true,
+            },
+          },
+        },
+      });
+
+      relations.push({
+        student: w.student,
+        coaches: coachRelations,
+      });
+    }
+
+    return relations;
   }
 
   /**
    * 更新教练的活跃学员数
    */
   private async updateCoachActiveStudents(coachId: number) {
-    const count = await this.prisma.student.count({
-      where: { coachId, status: 1, deletedAt: null },
+    const count = await this.prisma.studentCoach.count({
+      where: {
+        coachId,
+        status: 1,
+        deletedAt: null,
+      },
     });
 
     await this.prisma.coach.update({

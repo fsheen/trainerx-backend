@@ -198,7 +198,7 @@ export class AuthService {
   }
 
   /**
-   * 接受邀请码，关联学员到微信用户
+   * 接受邀请码，关联学员到微信用户（使用 StudentWechat 表）
    */
   private async acceptInviteCode(userId: number, inviteCode: string) {
     const student = await this.prisma.student.findUnique({
@@ -210,18 +210,38 @@ export class AuthService {
       return; // 静默忽略，不影响登录
     }
 
-    if (student.userId) {
-      console.warn('学员已被关联:', student.id);
+    // 获取用户的微信 OpenID
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { openid: true, unionid: true, phone: true },
+    });
+
+    if (!user) {
+      console.warn('用户不存在:', userId);
       return;
     }
 
-    // 关联学员到当前微信用户
-    await this.prisma.student.update({
-      where: { id: student.id },
-      data: { userId },
+    // 检查是否已关联
+    const existing = await this.prisma.studentWechat.findFirst({
+      where: { studentId: student.id, wechatOpenId: user.openid },
     });
 
-    console.log(`学员 ${student.name}(id=${student.id}) 已关联用户 ${userId}`);
+    if (existing) {
+      console.warn('学员已关联此微信:', student.id);
+      return;
+    }
+
+    // 创建关联记录
+    await this.prisma.studentWechat.create({
+      data: {
+        studentId: student.id,
+        wechatOpenId: user.openid,
+        wechatUnionId: user.unionid,
+        phone: user.phone || student.phone,
+      },
+    });
+
+    console.log(`学员 ${student.name}(id=${student.id}) 已关联微信 ${user.openid}`);
   }
 
   /**

@@ -2,6 +2,7 @@ import { Controller, Get, Post, Put, Delete, Body, Param, Query, ParseIntPipe, U
 import { StudentService } from './student.service';
 import { CreateStudentDto, UpdateStudentDto } from './dto/student.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { Public } from '../../common/decorators/public.decorator';
 
 @Controller('students')
 @UseGuards(JwtAuthGuard)
@@ -69,5 +70,34 @@ export class StudentController {
   ) {
     const coachId = await this.studentService.getCoachId(req.user.userId);
     return this.studentService.remove(id, coachId);
+  }
+
+  // ===== 以下为公开接口，不需要 JWT 认证 =====
+
+  /**
+   * 学员通过邀请码关联微信（公开接口）
+   */
+  @Post('wechat/link')
+  @Public()
+  async linkWechat(
+    @Body() body: { inviteCode: string; wechatOpenId: string; wechatUnionId?: string; phone?: string },
+  ) {
+    return this.studentService.linkStudentToWechat(
+      body.inviteCode,
+      body.wechatOpenId,
+      body.wechatUnionId,
+      body.phone,
+    );
+  }
+
+  /**
+   * 查询学员关联的所有教练（公开接口）
+   */
+  @Post('wechat/coaches')
+  @Public()
+  async getCoachesByOpenId(
+    @Body() body: { wechatOpenId: string },
+  ) {
+    return this.studentService.getStudentCoachesByOpenId(body.wechatOpenId);
   }
 }

@@ -151,6 +151,20 @@ export class CreateCourseSessionDto {
   @IsOptional()
   @IsString()
   note?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  gymId?: number;
+
+  @IsOptional()
+  @IsString()
+  gymName?: string;
+
+  @IsOptional()
+  @IsString()
+  gymAddress?: string;
 }
 
 export class UpdateCourseSessionDto {
