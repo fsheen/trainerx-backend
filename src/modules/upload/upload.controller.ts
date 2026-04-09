@@ -37,11 +37,16 @@ export class UploadController {
     // 写入文件
     fs.writeFileSync(filepath, file.buffer);
 
+    // 返回完整的 HTTPS URL（生产环境）
+    const baseUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://api.trainerx.fit' 
+      : 'http://localhost:3000';
+
     return {
       code: 0,
       message: 'success',
       data: {
-        url: `/uploads/${filename}`,
+        url: `${baseUrl}/uploads/${filename}`,
         filename,
       },
     };
