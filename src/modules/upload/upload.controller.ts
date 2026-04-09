@@ -13,7 +13,10 @@ import * as path from 'path';
 @Controller('upload')
 @UseGuards(JwtAuthGuard)
 export class UploadController {
-  private readonly uploadDir = path.join(process.cwd(), 'uploads');
+  // 生产环境使用公共目录，开发环境使用本地目录
+  private readonly uploadDir = process.env.NODE_ENV === 'production'
+    ? '/var/www/api.trainerx.fit/uploads'
+    : path.join(process.cwd(), 'uploads');
 
   constructor() {
     // 确保上传目录存在
