@@ -273,13 +273,21 @@ export class StudentService {
   }
 
   /**
-   * 批量导入学员
+   * 批量导入学员（支持课时包）
    */
   async batchImport(coachId: number, students: CreateStudentDto[]) {
-    const results = { created: 0, linked: 0, skipped: 0, errors: [] };
+    const results = { 
+      created: 0, 
+      linked: 0, 
+      skipped: 0, 
+      packagesCreated: 0,
+      errors: [] 
+    };
 
     for (const dto of students) {
       try {
+        let studentId: number;
+
         // 如果手机号匹配已有学员
         if (dto.phone) {
           const existing = await this.prisma.student.findFirst({
@@ -292,47 +300,95 @@ export class StudentService {
             });
 
             if (existingRelation) {
+              studentId = existing.id;
               results.skipped++;
-              continue;
+            } else {
+              await this.prisma.studentCoach.create({
+                data: {
+                  studentId: existing.id,
+                  coachId,
+                  startDate: new Date(),
+                },
+              });
+              studentId = existing.id;
+              results.linked++;
             }
+          } else {
+            // 创建新学员
+            const inviteCode = this.generateInviteCode();
+            const student = await this.prisma.student.create({
+              data: {
+                name: dto.name,
+                phone: dto.phone,
+                gender: dto.gender,
+                birthday: dto.birthday ? new Date(dto.birthday) : null,
+                height: dto.height,
+                weight: dto.weight,
+                goal: dto.goal,
+                note: dto.note,
+                avatar: dto.avatar,
+                inviteCode,
+              },
+            });
 
             await this.prisma.studentCoach.create({
               data: {
-                studentId: existing.id,
+                studentId: student.id,
                 coachId,
                 startDate: new Date(),
               },
             });
-            results.linked++;
-            continue;
+            studentId = student.id;
+            results.created++;
           }
+        } else {
+          // 无手机号，直接创建新学员 + 关系
+          const inviteCode = this.generateInviteCode();
+          const student = await this.prisma.student.create({
+            data: {
+              name: dto.name,
+              phone: dto.phone,
+              gender: dto.gender,
+              birthday: dto.birthday ? new Date(dto.birthday) : null,
+              height: dto.height,
+              weight: dto.weight,
+              goal: dto.goal,
+              note: dto.note,
+              avatar: dto.avatar,
+              inviteCode,
+            },
+          });
+
+          await this.prisma.studentCoach.create({
+            data: {
+              studentId: student.id,
+              coachId,
+              startDate: new Date(),
+            },
+          });
+          studentId = student.id;
+          results.created++;
         }
 
-        // 创建新学员 + 关系
-        const inviteCode = this.generateInviteCode();
-        const student = await this.prisma.student.create({
-          data: {
-            name: dto.name,
-            phone: dto.phone,
-            gender: dto.gender,
-            birthday: dto.birthday ? new Date(dto.birthday) : null,
-            height: dto.height,
-            weight: dto.weight,
-            goal: dto.goal,
-            note: dto.note,
-            avatar: dto.avatar,
-            inviteCode,
-          },
-        });
-
-        await this.prisma.studentCoach.create({
-          data: {
-            studentId: student.id,
-            coachId,
-            startDate: new Date(),
-          },
-        });
-        results.created++;
+        // 如果有时钟包信息，创建课时包
+        if (dto.courseName && dto.totalSessions && dto.totalSessions > 0) {
+          await this.prisma.studentCoursePackage.create({
+            data: {
+              studentId,
+              coachId,
+              courseName: dto.courseName,
+              totalSessions: dto.totalSessions,
+              remainingSessions: dto.totalSessions,
+              usedSessions: 0,
+              price: dto.price ? Math.round(dto.price * 100) : 0,
+              purchaseDate: dto.purchaseDate ? new Date(dto.purchaseDate) : new Date(),
+              expireDate: dto.expireDate ? new Date(dto.expireDate) : null,
+              note: dto.note,
+              status: 1,
+            },
+          });
+          results.packagesCreated++;
+        }
       } catch (e) {
         results.errors.push(`学员 ${dto.name}: ${e.message}`);
       }

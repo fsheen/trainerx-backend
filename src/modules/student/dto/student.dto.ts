@@ -41,6 +41,30 @@ export class CreateStudentDto {
   @IsOptional()
   @IsString()
   avatar?: string;
+
+  // 课时包信息（批量导入时用）
+  @IsOptional()
+  @IsString()
+  courseName?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Type(() => Number)
+  totalSessions?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  price?: number;
+
+  @IsOptional()
+  @IsString()
+  purchaseDate?: string;
+
+  @IsOptional()
+  @IsString()
+  expireDate?: string;
 }
 
 export class UpdateStudentDto {
