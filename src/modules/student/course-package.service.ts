@@ -65,35 +65,57 @@ export class CoursePackageService {
    * 创建课时包
    */
   async create(coachId: number, dto: CreateCoursePackageDto) {
-    const purchaseDate = dto.purchaseDate ? new Date(dto.purchaseDate) : new Date();
-    const expireDate = dto.expireDate ? new Date(dto.expireDate) : null;
-
-    const pkg = await this.prisma.studentCoursePackage.create({
-      data: {
-        coachId,
-        studentId: dto.studentId,
-        courseName: dto.courseName,
-        totalSessions: dto.totalSessions,
-        usedSessions: 0,
-        remainingSessions: dto.totalSessions,
-        price: dto.price,
-        purchaseDate,
-        expireDate,
-        note: dto.note,
-        status: 1,
-      },
-      include: {
-        student: {
-          select: {
-            id: true,
-            name: true,
-            phone: true,
-          },
-        },
+    console.log('创建课时包 - 输入数据:', {
+      coachId,
+      dto: {
+        ...dto,
+        purchaseDate: dto.purchaseDate,
+        expireDate: dto.expireDate,
       },
     });
 
-    return pkg;
+    const purchaseDate = dto.purchaseDate ? new Date(dto.purchaseDate) : new Date();
+    const expireDate = dto.expireDate ? new Date(dto.expireDate) : null;
+
+    console.log('创建课时包 - 处理后数据:', {
+      studentId: dto.studentId,
+      coachId,
+      purchaseDate,
+      expireDate,
+    });
+
+    try {
+      const pkg = await this.prisma.studentCoursePackage.create({
+        data: {
+          coachId,
+          studentId: dto.studentId,
+          courseName: dto.courseName,
+          totalSessions: dto.totalSessions,
+          usedSessions: 0,
+          remainingSessions: dto.totalSessions,
+          price: dto.price,
+          purchaseDate,
+          expireDate,
+          note: dto.note,
+          status: 1,
+        },
+        include: {
+          student: {
+            select: {
+              id: true,
+              name: true,
+              phone: true,
+            },
+          },
+        },
+      });
+
+      console.log('创建课时包成功:', pkg.id);
+      return pkg;
+    } catch (error) {
+      console.error('创建课时包失败:', error);
+      throw error;
+    }
   }
 
   /**
